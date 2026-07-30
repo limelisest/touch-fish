@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>TouchFish.Modules.BossKey</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <ProjectReference Include="..\..\TouchFish.Contracts\TouchFish.Contracts.csproj" />
+    <ProjectReference Include="..\TouchFish.Modules.BossKey.Core\TouchFish.Modules.BossKey.Core.csproj" />
+  </ItemGroup>
+</Project>
