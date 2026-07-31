@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -13,8 +14,13 @@ public partial class ReaderViewModel(
     ReaderWindowManager windowManager) : ObservableObject, IDisposable
 {
     private bool _restoringChapterSelection;
+    private bool _chapterEventAttached;
 
     public ObservableCollection<ReaderBookItemViewModel> Books { get; } = [];
+    public IReadOnlyList<string> AvailableFonts { get; } = Fonts.SystemFontFamilies
+        .Select(font => font.Source)
+        .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
+        .ToArray();
     public ObservableCollection<ReaderChapter> Chapters { get; } = [];
     public string LibraryPath => library.LibraryRoot;
 
@@ -24,6 +30,13 @@ public partial class ReaderViewModel(
 
     public async Task InitializeAsync()
     {
+        if (!_chapterEventAttached)
+        {
+            windowManager.ChapterChanged += OnReaderChapterChanged;
+            windowManager.OpacityChanged += OnReaderOpacityChanged;
+            _chapterEventAttached = true;
+        }
+
         Books.Clear();
         foreach (var book in await library.LoadBooksAsync())
         {
@@ -177,6 +190,26 @@ public partial class ReaderViewModel(
         Process.Start(new ProcessStartInfo("explorer.exe", library.LibraryRoot) { UseShellExecute = true });
     }
 
+    private void OnReaderChapterChanged(ReaderBook book, int chapterIndex)
+    {
+        if (SelectedBook?.Id != book.Id || chapterIndex < 0 || chapterIndex >= Chapters.Count)
+        {
+            return;
+        }
+
+        _restoringChapterSelection = true;
+        SelectedChapter = Chapters[chapterIndex];
+        _restoringChapterSelection = false;
+    }
+
+    private void OnReaderOpacityChanged(ReaderBook book, double opacity)
+    {
+        if (SelectedBook?.Id == book.Id)
+        {
+            SelectedBook.ReaderWindowOpacity = opacity;
+        }
+    }
+
     private void Attach(ReaderBookItemViewModel book) => book.PropertyChanged += OnBookPropertyChanged;
     private void Detach(ReaderBookItemViewModel book) => book.PropertyChanged -= OnBookPropertyChanged;
 
@@ -186,7 +219,10 @@ public partial class ReaderViewModel(
             nameof(ReaderBookItemViewModel.FloatingWidgetEnabled) or
             nameof(ReaderBookItemViewModel.FloatingWidgetTriggerMode) or
             nameof(ReaderBookItemViewModel.FloatingWidgetEdgeSnapEnabled) or
-            nameof(ReaderBookItemViewModel.ReaderWindowTopmost)))
+            nameof(ReaderBookItemViewModel.ReaderWindowTopmost) or
+            nameof(ReaderBookItemViewModel.ReaderFontFamily) or
+            nameof(ReaderBookItemViewModel.ReaderFontSize) or
+            nameof(ReaderBookItemViewModel.ReaderWindowOpacity)))
         {
             return;
         }
@@ -214,6 +250,13 @@ public partial class ReaderViewModel(
         foreach (var book in Books)
         {
             Detach(book);
+        }
+
+        if (_chapterEventAttached)
+        {
+            windowManager.ChapterChanged -= OnReaderChapterChanged;
+            windowManager.OpacityChanged -= OnReaderOpacityChanged;
+            _chapterEventAttached = false;
         }
     }
 }

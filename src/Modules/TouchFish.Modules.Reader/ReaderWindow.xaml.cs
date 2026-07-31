@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace TouchFish.Modules.Reader;
@@ -41,6 +42,8 @@ public partial class ReaderWindow : Window
     }
 
     public ReaderBook? CurrentBook => _book;
+    public event Action<ReaderBook, int>? ChapterChanged;
+    public event Action<ReaderBook, double>? OpacityChanged;
     public event Action? PointerExited;
     public event Action? DismissRequested;
 
@@ -53,6 +56,7 @@ public partial class ReaderWindow : Window
 
         _book = book;
         ReaderText.Text = string.Empty;
+        ApplyAppearance(book);
         Width = Math.Max(MinWidth, book.ReaderWindowWidth);
         Height = Math.Max(MinHeight, book.ReaderWindowHeight);
         Topmost = book.ReaderWindowTopmost;
@@ -85,14 +89,13 @@ public partial class ReaderWindow : Window
         }
 
         _loading = true;
+        _saveTimer.Stop();
         try
         {
             SaveReadingOffset();
             var safeIndex = Math.Clamp(chapterIndex, 0, _book.Chapters.Count - 1);
             _book.CurrentChapterIndex = safeIndex;
             var chapter = _book.Chapters[safeIndex];
-            ChapterTitle.Text = $"{_book.Title} · {chapter.Title}";
-            Title = $"{_book.Title} - {chapter.Title}";
             ReaderText.Text = await _library.ReadChapterAsync(_book, safeIndex);
             ReaderText.ScrollToHome();
             if (restorePosition && _book.CurrentCharacterOffset > 0)
@@ -109,11 +112,43 @@ public partial class ReaderWindow : Window
                 _book.CurrentCharacterOffset = 0;
             }
 
+            ChapterChanged?.Invoke(_book, safeIndex);
             await _library.SaveAsync(_book);
         }
         finally
         {
             _loading = false;
+        }
+    }
+
+    public void ApplyAppearance(ReaderBook book)
+    {
+        var fontSize = Math.Clamp(book.ReaderFontSize, 10, 48);
+        try
+        {
+            ReaderText.FontFamily = new FontFamily(book.ReaderFontFamily);
+        }
+        catch
+        {
+            ReaderText.FontFamily = new FontFamily("Microsoft YaHei UI");
+        }
+
+        ReaderText.FontSize = fontSize;
+        TextBlock.SetLineHeight(ReaderText, fontSize * 1.65);
+        var opacity = Math.Clamp(book.ReaderWindowOpacity, 0.25, 1);
+        Opacity = opacity;
+        OpacitySlider.Value = opacity;
+    }
+
+    private void OpacitySlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        var opacity = Math.Clamp(e.NewValue, 0.25, 1);
+        Opacity = opacity;
+        if (_book is not null)
+        {
+            _book.ReaderWindowOpacity = opacity;
+            OpacityChanged?.Invoke(_book, opacity);
+            ScheduleSave();
         }
     }
 
@@ -207,9 +242,17 @@ public partial class ReaderWindow : Window
         }
 
         var line = ReaderText.GetFirstVisibleLineIndex();
-        if (line >= 0)
+        var lineCount = ReaderText.LineCount;
+        if (line >= 0 && line < lineCount)
         {
-            _book.CurrentCharacterOffset = Math.Max(0, ReaderText.GetCharacterIndexFromLineIndex(line));
+            try
+            {
+                _book.CurrentCharacterOffset = Math.Max(0, ReaderText.GetCharacterIndexFromLineIndex(line));
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // Text layout can still report a stale first-visible line while a chapter is changing.
+            }
         }
     }
 
@@ -230,7 +273,14 @@ public partial class ReaderWindow : Window
         }
 
         _book.ReaderWindowTopmost = Topmost;
-        await _library.SaveAsync(_book);
+        try
+        {
+            await _library.SaveAsync(_book);
+        }
+        catch
+        {
+            // Reading state is best-effort and will be retried on the next scroll or window change.
+        }
     }
 
     public void Shutdown()

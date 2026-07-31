@@ -15,7 +15,7 @@
                     <CheckBox Margin="0,16,0,0" Content="开机自启动"
                               IsChecked="{Binding AutoStartEnabled, Mode=TwoWay}" />
                     <TextBlock Margin="26,4,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
-                               Text="使用 Windows 任务计划程序以最高权限在登录后启动。" />
+                               Text="保存此选项时会请求一次管理员权限；登录后 TouchFish 仍以普通权限运行。" />
                     <CheckBox Margin="0,14,0,0" Content="静默启动"
                               IsEnabled="{Binding AutoStartEnabled}"
                               IsChecked="{Binding SilentStartup, Mode=TwoWay}" />

@@ -57,6 +57,16 @@ public sealed class ReaderChapterParserTests
     }
 
     [Fact]
+    public void WidgetPlacement_CentersAndRestoresWindowPosition()
+    {
+        var widget = ReaderWidgetPlacement.CenterWidgetOnWindow(100, 200, 600, 400, 120, 40);
+        var window = ReaderWidgetPlacement.CenterWindowOnWidget(widget.Left, widget.Top, 120, 40, 600, 400);
+
+        Assert.Equal((340d, 380d), widget);
+        Assert.Equal((100d, 200d), window);
+    }
+
+    [Fact]
     public async Task Import_Gb18030Book_PersistsMetadataWithoutNamedFloatingPointValues()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);

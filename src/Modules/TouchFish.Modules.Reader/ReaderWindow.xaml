@@ -1,33 +1,47 @@
 <Window x:Class="TouchFish.Modules.Reader.ReaderWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="TouchFish 看书"
-        Width="560" Height="420" MinWidth="320" MinHeight="220"
-        WindowStyle="ToolWindow" ResizeMode="CanResizeWithGrip"
-        ShowInTaskbar="False" Topmost="True"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="" Width="560" Height="420" MinWidth="320" MinHeight="220"
+        WindowStyle="None" ResizeMode="CanResize" ShowInTaskbar="False" Topmost="True"
         Background="{DynamicResource AppBackgroundBrush}">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="8" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Button MinWidth="70" Padding="10,5" Content="上一章" Click="PreviousChapter_OnClick" />
-            <TextBlock x:Name="ChapterTitle" Grid.Column="1" Margin="12,0"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-            <Button Grid.Column="2" MinWidth="70" Padding="10,5" Content="下一章" Click="NextChapter_OnClick" />
-        </Grid>
-        <TextBox x:Name="ReaderText" Grid.Row="2"
-                 Padding="14" IsReadOnly="True" AcceptsReturn="True"
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="8" ResizeBorderThickness="6"
+                            CornerRadius="0" GlassFrameThickness="0" />
+    </shell:WindowChrome.WindowChrome>
+
+    <Grid>
+        <TextBox x:Name="ReaderText" Padding="16,16,16,58"
+                 IsReadOnly="True" AcceptsReturn="True"
                  TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                  HorizontalScrollBarVisibility="Disabled"
-                 FontSize="16" TextBlock.LineHeight="26" />
+                 FontSize="16" TextBlock.LineHeight="26"
+                 BorderThickness="0" Background="Transparent" />
+
+        <Border VerticalAlignment="Bottom" Height="48" Margin="10"
+                Padding="10,6" CornerRadius="7"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                shell:WindowChrome.IsHitTestVisibleInChrome="True">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" Text="透明度" />
+                <Slider x:Name="OpacitySlider" Grid.Column="1" Margin="10,0,0,0"
+                        Minimum="0.25" Maximum="1" TickFrequency="0.05"
+                        IsSnapToTickEnabled="True" Value="1"
+                        ValueChanged="OpacitySlider_OnValueChanged" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                    <Button MinWidth="70" Padding="10,5" Content="上一章"
+                            Click="PreviousChapter_OnClick" />
+                    <Button MinWidth="70" Margin="8,0,0,0" Padding="10,5" Content="下一章"
+                            Click="NextChapter_OnClick" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

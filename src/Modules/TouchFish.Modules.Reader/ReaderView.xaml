@@ -74,6 +74,23 @@
                         <TextBlock Margin="0,12,0,2" Foreground="{DynamicResource TextSecondaryBrush}" Text="书名" />
                         <TextBox IsReadOnly="True" Text="{Binding SelectedBook.Title, Mode=OneWay}" />
 
+                        <TextBlock Margin="0,14,0,2" Foreground="{DynamicResource TextSecondaryBrush}" Text="阅读字体" />
+                        <ComboBox ItemsSource="{Binding AvailableFonts}"
+                                  SelectedItem="{Binding SelectedBook.ReaderFontFamily, Mode=TwoWay}" />
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="45" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" Text="字号" />
+                            <Slider Grid.Column="1" Margin="12,0" Minimum="10" Maximum="48"
+                                    TickFrequency="1" IsSnapToTickEnabled="True"
+                                    Value="{Binding SelectedBook.ReaderFontSize, Mode=TwoWay}" />
+                            <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Text="{Binding SelectedBook.ReaderFontSize, StringFormat={}{0:0}}" />
+                        </Grid>
+
                         <CheckBox Margin="0,16,0,0" Content="阅读窗口始终置顶"
                                   IsChecked="{Binding SelectedBook.ReaderWindowTopmost, Mode=TwoWay}" />
 
@@ -83,7 +100,7 @@
                                   IsChecked="{Binding SelectedBook.FloatingWidgetEnabled, Mode=TwoWay}" />
                         <TextBlock Margin="0,12,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
                                    TextWrapping="Wrap"
-                                   Text="鼠标移入小悬浮窗时显示正文；鼠标离开正文窗口后恢复小悬浮窗。两者左上角位置保持绑定。" />
+                                   Text="鼠标移入小悬浮窗时显示正文；鼠标离开正文窗口后恢复小悬浮窗。两者中心位置保持绑定。" />
                         <CheckBox Margin="0,12,0,0" Content="拖到屏幕边缘时自动吸附"
                                   IsChecked="{Binding SelectedBook.FloatingWidgetEdgeSnapEnabled, Mode=TwoWay}" />
 

@@ -23,6 +23,8 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     }
 
     public string Id => "reader.window";
+    public event Action<ReaderBook, int>? ChapterChanged;
+    public event Action<ReaderBook, double>? OpacityChanged;
     public bool IsAvailable => _activeBook is not null;
     public bool IsMinimizedOrHidden => _readerWindow is null || !_readerWindow.IsVisible || _readerWindow.WindowState == WindowState.Minimized;
 
@@ -62,8 +64,15 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         {
             if (fromWidget)
             {
-                book.Model.ReaderWindowLeft = _widget.Left;
-                book.Model.ReaderWindowTop = _widget.Top;
+                var widgetWidth = _widget.ActualWidth > 0 ? _widget.ActualWidth : 120;
+                var widgetHeight = _widget.ActualHeight > 0 ? _widget.ActualHeight : 40;
+                (book.Model.ReaderWindowLeft, book.Model.ReaderWindowTop) = ReaderWidgetPlacement.CenterWindowOnWidget(
+                    _widget.Left,
+                    _widget.Top,
+                    widgetWidth,
+                    widgetHeight,
+                    book.Model.ReaderWindowWidth,
+                    book.Model.ReaderWindowHeight);
             }
 
             _widget.Hide();
@@ -81,7 +90,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
 
     public void SyncFloatingWidget()
     {
-        if (_activeBook is null || !_activeBook.FloatingWidgetEnabled)
+        if (_activeBook is null)
         {
             _readerWindow?.StopPointerTracking();
             _widget?.Close();
@@ -90,6 +99,20 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         }
 
         var book = _activeBook;
+        if (_readerWindow is not null && _readerWindow.CurrentBook?.Id == book.Id)
+        {
+            _readerWindow.Topmost = book.ReaderWindowTopmost;
+            _readerWindow.ApplyAppearance(book.Model);
+        }
+
+        if (!book.FloatingWidgetEnabled)
+        {
+            _readerWindow?.StopPointerTracking();
+            _widget?.Close();
+            _widget = null;
+            return;
+        }
+
         var widgetCreated = false;
         if (_widget is null)
         {
@@ -111,12 +134,18 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
                 _ = SaveBookAsync(activeBook);
             };
             var workArea = SystemParameters.WorkArea;
-            var left = book.Model.ReaderWindowLeft
-                ?? book.Model.FloatingWidgetLeft
-                ?? workArea.Right - 132;
-            var top = book.Model.ReaderWindowTop
-                ?? book.Model.FloatingWidgetTop
-                ?? workArea.Top + 72;
+            var centeredWidgetPosition = book.Model.ReaderWindowLeft is { } readerLeft &&
+                                         book.Model.ReaderWindowTop is { } readerTop
+                ? ReaderWidgetPlacement.CenterWidgetOnWindow(
+                    readerLeft,
+                    readerTop,
+                    book.Model.ReaderWindowWidth,
+                    book.Model.ReaderWindowHeight,
+                    120,
+                    40)
+                : ((double Left, double Top)?)null;
+            var left = centeredWidgetPosition?.Left ?? book.Model.FloatingWidgetLeft ?? workArea.Right - 132;
+            var top = centeredWidgetPosition?.Top ?? book.Model.FloatingWidgetTop ?? workArea.Top + 72;
             _widget.SetInitialPosition(left, top);
             if (_readerWindow?.IsVisible != true)
             {
@@ -126,7 +155,6 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
 
         if (_readerWindow is not null && _readerWindow.CurrentBook?.Id == book.Id)
         {
-            _readerWindow.Topmost = book.ReaderWindowTopmost;
             if (_readerWindow.IsVisible)
             {
                 if (widgetCreated)
@@ -191,6 +219,8 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         }
 
         _readerWindow = new ReaderWindow(_library);
+        _readerWindow.ChapterChanged += (book, chapterIndex) => ChapterChanged?.Invoke(book, chapterIndex);
+        _readerWindow.OpacityChanged += (book, opacity) => OpacityChanged?.Invoke(book, opacity);
         _readerWindow.PointerExited += CollapseToWidget;
         _readerWindow.DismissRequested += CollapseToWidget;
         return _readerWindow;
@@ -212,14 +242,23 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
                 : _readerWindow.RestoreBounds;
             book.Model.ReaderWindowLeft = bounds.Left;
             book.Model.ReaderWindowTop = bounds.Top;
-            book.Model.FloatingWidgetLeft = bounds.Left;
-            book.Model.FloatingWidgetTop = bounds.Top;
+            var widgetWidth = _widget is { ActualWidth: > 0 } currentWidget ? currentWidget.ActualWidth : 120;
+            var widgetHeight = _widget is { ActualHeight: > 0 } measuredWidget ? measuredWidget.ActualHeight : 40;
+            (book.Model.FloatingWidgetLeft, book.Model.FloatingWidgetTop) = ReaderWidgetPlacement.CenterWidgetOnWindow(
+                bounds.Left,
+                bounds.Top,
+                bounds.Width,
+                bounds.Height,
+                widgetWidth,
+                widgetHeight);
             _readerWindow.HideForWidget();
             SyncFloatingWidget();
             if (_widget is not null)
             {
                 _widgetArmed = false;
-                _widget.SetInitialPosition(bounds.Left, bounds.Top);
+                _widget.SetInitialPosition(
+                    book.Model.FloatingWidgetLeft.Value,
+                    book.Model.FloatingWidgetTop.Value);
                 _widget.Show();
                 _ = RearmWidgetAsync(_widget);
             }

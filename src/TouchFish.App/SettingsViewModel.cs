@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -8,6 +9,9 @@ public partial class SettingsViewModel(
     AppSettingsStore settingsStore,
     StartupTaskService startupTaskService) : ObservableObject
 {
+    private bool _savedAutoStartEnabled;
+    private bool _savedSilentStartup;
+
     [ObservableProperty] private bool _autoStartEnabled;
     [ObservableProperty] private bool _silentStartup;
     [ObservableProperty] private string _statusText = "";
@@ -21,6 +25,8 @@ public partial class SettingsViewModel(
         var settings = await settingsStore.LoadAsync();
         AutoStartEnabled = settings.AutoStartEnabled;
         SilentStartup = settings.SilentStartup;
+        _savedAutoStartEnabled = settings.AutoStartEnabled;
+        _savedSilentStartup = settings.SilentStartup;
     }
 
     [RelayCommand]
@@ -33,11 +39,23 @@ public partial class SettingsViewModel(
                 AutoStartEnabled = AutoStartEnabled,
                 SilentStartup = SilentStartup
             };
+            var startupConfigurationChanged = AutoStartEnabled != _savedAutoStartEnabled ||
+                                              AutoStartEnabled && SilentStartup != _savedSilentStartup;
+            if (startupConfigurationChanged)
+            {
+                await startupTaskService.ApplyAsync(AutoStartEnabled, SilentStartup);
+            }
+
             await settingsStore.SaveAsync(settings);
-            await startupTaskService.ApplyAsync(AutoStartEnabled, SilentStartup);
+            _savedAutoStartEnabled = AutoStartEnabled;
+            _savedSilentStartup = SilentStartup;
             StatusText = AutoStartEnabled
                 ? $"设置已保存，TouchFish 将在登录后{(SilentStartup ? "静默" : "正常")}启动。"
                 : "设置已保存，开机自启动已关闭。";
+        }
+        catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
+        {
+            StatusText = "已取消管理员授权，开机启动设置没有更改。";
         }
         catch (Exception exception)
         {

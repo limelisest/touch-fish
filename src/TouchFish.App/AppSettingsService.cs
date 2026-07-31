@@ -71,7 +71,7 @@ public sealed class StartupTaskService
             "/TN", TaskName,
             "/TR", command,
             "/SC", "ONLOGON",
-            "/RL", "HIGHEST",
+            "/RL", "LIMITED",
             "/F"
         ]);
     }
@@ -80,10 +80,9 @@ public sealed class StartupTaskService
     {
         var startInfo = new ProcessStartInfo("schtasks.exe")
         {
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardError = true,
-            RedirectStandardOutput = true
+            UseShellExecute = true,
+            Verb = "runas",
+            WindowStyle = ProcessWindowStyle.Hidden
         };
         foreach (var argument in arguments) startInfo.ArgumentList.Add(argument);
         using var process = Process.Start(startInfo)
@@ -91,9 +90,7 @@ public sealed class StartupTaskService
         await process.WaitForExitAsync();
         if (process.ExitCode != 0 && !ignoreFailure)
         {
-            var error = await process.StandardError.ReadToEndAsync();
-            if (string.IsNullOrWhiteSpace(error)) error = await process.StandardOutput.ReadToEndAsync();
-            throw new InvalidOperationException($"开机启动设置失败：{error.Trim()}");
+            throw new InvalidOperationException($"开机启动设置失败，任务计划程序返回代码 {process.ExitCode}。");
         }
     }
 }

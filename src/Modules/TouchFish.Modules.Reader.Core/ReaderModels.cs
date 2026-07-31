@@ -17,6 +17,9 @@ public sealed class ReaderBook
     public double ReaderWindowWidth { get; set; } = 560;
     public double ReaderWindowHeight { get; set; } = 420;
     public bool ReaderWindowTopmost { get; set; } = true;
+    public string ReaderFontFamily { get; set; } = "Microsoft YaHei UI";
+    public double ReaderFontSize { get; set; } = 16;
+    public double ReaderWindowOpacity { get; set; } = 1;
     public bool FloatingWidgetEnabled { get; set; }
     public FloatingWidgetTriggerMode FloatingWidgetTriggerMode { get; set; } = FloatingWidgetTriggerMode.Click;
     public bool FloatingWidgetEdgeSnapEnabled { get; set; } = true;
