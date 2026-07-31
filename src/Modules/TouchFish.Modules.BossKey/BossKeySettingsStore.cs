@@ -38,8 +38,9 @@ public sealed class BossKeySettingsStore : IBossKeySettingsStore
         try
         {
             await using var stream = File.OpenRead(_filePath);
-            return await JsonSerializer.DeserializeAsync<BossKeySettings>(stream, SerializerOptions, cancellationToken)
-                   ?? new BossKeySettings();
+            var settings = await JsonSerializer.DeserializeAsync<BossKeySettings>(stream, SerializerOptions, cancellationToken)
+                           ?? new BossKeySettings();
+            return BossKeySettingsMigration.Migrate(settings);
         }
         catch (JsonException)
         {

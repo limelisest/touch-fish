@@ -14,13 +14,11 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private readonly IWindowPickerService _windowPickerService;
     private readonly IBossKeySettingsStore _settingsStore;
     private readonly WindowRuleMatcher _matcher;
-    private readonly List<RestoreEntry> _placements = [];
     private readonly Dictionary<nint, AutoMinimizeState> _autoMinimizeStates = [];
     private readonly DispatcherTimer _autoMinimizeTimer;
     private DateTimeOffset _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
     private HotkeyGesture _hotkey = new(0x4D, HotkeyModifiers.Control | HotkeyModifiers.Alt, "M");
     private bool _hotkeyAttached;
-    private bool _windowsMinimized;
 
     public BossKeyViewModel(
         IWindowService windowService,
@@ -141,7 +139,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             TitleContains = string.IsNullOrWhiteSpace(window.BrowserAppId) ? window.Title : string.Empty,
             AppUserModelId = window.AppUserModelId,
             BrowserAppId = window.BrowserAppId,
-            AutoMinimizeMinutes = 1,
+            AutoMinimizeSeconds = 60,
             CurrentState = "运行中"
         };
 
@@ -228,18 +226,18 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var minutes = Math.Clamp(SelectedWindow.AutoMinimizeMinutes, 0, 1440);
-        SelectedWindow.AutoMinimizeMinutes = minutes;
+        var seconds = Math.Clamp(SelectedWindow.AutoMinimizeSeconds, 0, 86400);
+        SelectedWindow.AutoMinimizeSeconds = seconds;
         foreach (var window in Windows)
         {
-            window.AutoMinimizeMinutes = minutes;
+            window.AutoMinimizeSeconds = seconds;
         }
 
         _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
         await SaveSettingsAsync();
-        StatusText = minutes == 0
+        StatusText = seconds == 0
             ? "已关闭所有窗口的失焦自动最小化。"
-            : $"已把自动最小化时间同步为 {minutes} 分钟。";
+            : $"已把自动最小化时间同步为 {seconds} 秒。";
     }
 
     [RelayCommand]
@@ -320,7 +318,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             }
 
             state.LostFocusAt ??= now;
-            if (!AutoMinimizePolicy.ShouldMinimize(state.LostFocusAt, state.Minutes, now))
+            if (!AutoMinimizePolicy.ShouldMinimize(state.LostFocusAt, state.Seconds, now))
             {
                 continue;
             }
@@ -328,7 +326,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             if (_windowService.Minimize(handle))
             {
                 state.Rule.CurrentState = "已自动最小化";
-                StatusText = $"“{state.Rule.Name}”失去焦点 {state.Minutes} 分钟，已自动最小化。";
+                StatusText = $"“{state.Rule.Name}”失去焦点 {state.Seconds} 秒，已自动最小化。";
             }
 
             state.LostFocusAt = null;
@@ -341,9 +339,9 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         var currentWindows = _windowService.EnumerateTopLevelWindows();
         var activeHandles = new HashSet<nint>();
 
-        foreach (var rule in Windows.Where(rule => rule.AutoMinimizeMinutes > 0))
+        foreach (var rule in Windows.Where(rule => rule.AutoMinimizeSeconds > 0))
         {
-            var minutes = Math.Clamp(rule.AutoMinimizeMinutes, 1, 1440);
+            var seconds = Math.Clamp(rule.AutoMinimizeSeconds, 1, 86400);
             foreach (var window in _matcher.FindMatches(rule.ToModel(), currentWindows))
             {
                 if (!activeHandles.Add(window.Handle))
@@ -354,11 +352,11 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 if (_autoMinimizeStates.TryGetValue(window.Handle, out var state))
                 {
                     state.Rule = rule;
-                    state.Minutes = minutes;
+                    state.Seconds = seconds;
                 }
                 else
                 {
-                    _autoMinimizeStates[window.Handle] = new AutoMinimizeState(rule, minutes);
+                    _autoMinimizeStates[window.Handle] = new AutoMinimizeState(rule, seconds);
                 }
             }
         }
@@ -383,34 +381,6 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
     private void ToggleWindows()
     {
-        if (_windowsMinimized)
-        {
-            var restored = 0;
-            nint foregroundWindow = nint.Zero;
-
-            // Restore from the bottom of the list to the top. The first item is
-            // therefore restored last and receives focus, matching its visual priority.
-            foreach (var entry in _placements.OrderByDescending(entry => entry.Priority))
-            {
-                if (_windowService.Restore(entry.Placement))
-                {
-                    restored++;
-                    foregroundWindow = entry.Placement.Handle;
-                }
-            }
-
-            if (foregroundWindow != nint.Zero)
-            {
-                _windowService.TryFocus(foregroundWindow);
-            }
-
-            _placements.Clear();
-            _windowsMinimized = false;
-            StatusText = $"已按列表层级恢复 {restored} 个窗口。";
-            RefreshWindowStates();
-            return;
-        }
-
         var currentWindows = _windowService.EnumerateTopLevelWindows();
         var targets = Windows
             .Select((item, priority) => new { Item = item, Priority = priority })
@@ -423,25 +393,50 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             .OrderBy(target => target.Priority)
             .ToArray();
 
-        _placements.Clear();
-        foreach (var target in targets)
+        var action = BossKeyTogglePolicy.Decide(
+            targets.Select(target => _windowService.IsMinimized(target.Window.Handle)).ToArray());
+        if (action == BossKeyToggleAction.None)
         {
-            if (_windowService.IsMinimized(target.Window.Handle))
-            {
-                continue;
-            }
-
-            var placement = _windowService.CapturePlacement(target.Window.Handle);
-            if (placement is not null && _windowService.Minimize(target.Window.Handle))
-            {
-                _placements.Add(new RestoreEntry(placement, target.Priority));
-            }
+            StatusText = "没有找到目标窗口。";
+            return;
         }
 
-        _windowsMinimized = _placements.Count > 0;
-        StatusText = _windowsMinimized
-            ? $"已最小化 {_placements.Count} 个窗口；再次按老板键可恢复。"
-            : "没有找到可最小化的目标窗口。";
+        if (action == BossKeyToggleAction.ShowAll)
+        {
+            var restored = 0;
+            nint foregroundWindow = nint.Zero;
+
+            // Restore bottom-to-top so the first list item is shown last.
+            foreach (var target in targets.OrderByDescending(target => target.Priority))
+            {
+                if (_windowService.Restore(target.Window.Handle))
+                {
+                    restored++;
+                    foregroundWindow = target.Window.Handle;
+                }
+            }
+
+            if (foregroundWindow != nint.Zero)
+            {
+                _windowService.TryFocus(foregroundWindow);
+            }
+
+            StatusText = $"已统一显示 {restored} 个窗口。";
+        }
+        else
+        {
+            var minimized = 0;
+            foreach (var target in targets)
+            {
+                if (_windowService.IsMinimized(target.Window.Handle) || _windowService.Minimize(target.Window.Handle))
+                {
+                    minimized++;
+                }
+            }
+
+            StatusText = $"已统一最小化 {minimized} 个窗口。";
+        }
+
         RefreshWindowStates();
     }
 
@@ -459,12 +454,10 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         _autoMinimizeTimer.Tick -= OnAutoMinimizeTick;
     }
 
-    private sealed record RestoreEntry(WindowPlacementSnapshot Placement, int Priority);
-
-    private sealed class AutoMinimizeState(WindowRuleItemViewModel rule, int minutes)
+    private sealed class AutoMinimizeState(WindowRuleItemViewModel rule, int seconds)
     {
         public WindowRuleItemViewModel Rule { get; set; } = rule;
-        public int Minutes { get; set; } = minutes;
+        public int Seconds { get; set; } = seconds;
         public DateTimeOffset? LostFocusAt { get; set; }
     }
 }

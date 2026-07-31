@@ -100,6 +100,9 @@ public sealed partial class Win32WindowService : IWindowService
     public bool Minimize(nint windowHandle) =>
         NativeMethods.IsWindow(windowHandle) && NativeMethods.ShowWindowAsync(windowHandle, SwMinimize);
 
+    public bool Restore(nint windowHandle) =>
+        NativeMethods.IsWindow(windowHandle) && NativeMethods.ShowWindowAsync(windowHandle, SwRestore);
+
     public bool Restore(WindowPlacementSnapshot snapshot)
     {
         if (!NativeMethods.IsWindow(snapshot.Handle))

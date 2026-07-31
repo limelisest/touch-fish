@@ -13,7 +13,7 @@ public partial class WindowRuleItemViewModel : ObservableObject
     [ObservableProperty] private string _titleContains = string.Empty;
     [ObservableProperty] private string? _appUserModelId;
     [ObservableProperty] private string? _browserAppId;
-    [ObservableProperty] private int _autoMinimizeMinutes = 1;
+    [ObservableProperty] private int _autoMinimizeSeconds = 60;
     [ObservableProperty] private string _currentState = "未检查";
 
     public static WindowRuleItemViewModel FromModel(WindowRule model) => new()
@@ -26,7 +26,7 @@ public partial class WindowRuleItemViewModel : ObservableObject
         TitleContains = model.TitleContains,
         AppUserModelId = model.AppUserModelId,
         BrowserAppId = model.BrowserAppId,
-        AutoMinimizeMinutes = model.AutoMinimizeMinutes
+        AutoMinimizeSeconds = model.AutoMinimizeSeconds
     };
 
     public WindowRule ToModel() => new()
@@ -39,7 +39,7 @@ public partial class WindowRuleItemViewModel : ObservableObject
         TitleContains = TitleContains.Trim(),
         AppUserModelId = NullIfEmpty(AppUserModelId),
         BrowserAppId = NullIfEmpty(BrowserAppId),
-        AutoMinimizeMinutes = Math.Clamp(AutoMinimizeMinutes, 0, 1440)
+        AutoMinimizeSeconds = Math.Clamp(AutoMinimizeSeconds, 0, 86400)
     };
 
     private static string? NullIfEmpty(string? value) =>

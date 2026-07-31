@@ -92,7 +92,7 @@
                 <DataGridTextColumn Width="1.3*" Header="名称" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
                 <DataGridTextColumn Width="0.8*" Header="进程" Binding="{Binding ProcessName}" IsReadOnly="True" />
                 <DataGridTextColumn Width="1.5*" Header="标题包含" Binding="{Binding TitleContains, UpdateSourceTrigger=PropertyChanged}" />
-                <DataGridTextColumn Width="120" Header="失焦最小化（分）" Binding="{Binding AutoMinimizeMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                <DataGridTextColumn Width="120" Header="失焦最小化（秒）" Binding="{Binding AutoMinimizeSeconds, UpdateSourceTrigger=PropertyChanged}" />
                 <DataGridTextColumn Width="90" Header="状态" Binding="{Binding CurrentState}" IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>
@@ -153,8 +153,8 @@
                     <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="自动最小化"
                                Foreground="{DynamicResource TextSecondaryBrush}" />
                     <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Margin="8,4,0,0" Orientation="Horizontal">
-                        <TextBox Width="72" Padding="7,4" Text="{Binding SelectedWindow.AutoMinimizeMinutes, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Margin="8,0,12,0" VerticalAlignment="Center" Text="分钟（0 表示关闭）" />
+                        <TextBox Width="72" Padding="7,4" Text="{Binding SelectedWindow.AutoMinimizeSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Margin="8,0,12,0" VerticalAlignment="Center" Text="秒（0 表示关闭）" />
                         <Button Padding="12,5" Content="同步到所有窗口" Command="{Binding SyncAutoMinimizeToAllCommand}" />
                     </StackPanel>
                 </Grid>

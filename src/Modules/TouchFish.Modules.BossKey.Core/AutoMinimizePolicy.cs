@@ -4,11 +4,11 @@ public static class AutoMinimizePolicy
 {
     public static bool ShouldMinimize(
         DateTimeOffset? lostFocusAt,
-        int minutes,
+        int seconds,
         DateTimeOffset now)
     {
-        return minutes > 0 &&
+        return seconds > 0 &&
                lostFocusAt is not null &&
-               now - lostFocusAt.Value >= TimeSpan.FromMinutes(minutes);
+               now - lostFocusAt.Value >= TimeSpan.FromSeconds(seconds);
     }
 }

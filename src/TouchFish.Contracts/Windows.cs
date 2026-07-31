@@ -38,5 +38,6 @@ public interface IWindowService
     bool IsMinimized(nint windowHandle);
     WindowPlacementSnapshot? CapturePlacement(nint windowHandle);
     bool Minimize(nint windowHandle);
+    bool Restore(nint windowHandle);
     bool Restore(WindowPlacementSnapshot placement);
 }

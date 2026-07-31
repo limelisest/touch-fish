@@ -9,11 +9,11 @@ public sealed class WindowRuleMatcherTests
     private readonly WindowRuleMatcher _matcher = new();
 
     [Fact]
-    public void NewWindowRule_DefaultsAutoMinimizeToOneMinute()
+    public void NewWindowRule_DefaultsAutoMinimizeToSixtySeconds()
     {
         var rule = new WindowRule();
 
-        Assert.Equal(1, rule.AutoMinimizeMinutes);
+        Assert.Equal(60, rule.AutoMinimizeSeconds);
     }
 
     [Fact]
