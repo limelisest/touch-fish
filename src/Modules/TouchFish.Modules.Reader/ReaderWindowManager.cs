@@ -13,6 +13,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     private ReaderBookItemViewModel? _activeBook;
     private bool _widgetArmed = true;
     private bool _collapsing;
+    private bool _openingFromWidget;
 
     public ReaderWindowManager(ReaderLibraryService library, IToolWindowRegistry registry)
     {
@@ -89,8 +90,11 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         }
 
         var book = _activeBook;
+        var widgetCreated = false;
         if (_widget is null)
         {
+            widgetCreated = true;
+            _widgetArmed = true;
             _widget = new FloatingWidgetWindow();
             _widget.PointerEntered += OnWidgetPointerEntered;
             _widget.PointerExited += () => _widgetArmed = true;
@@ -125,8 +129,19 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
             _readerWindow.Topmost = book.ReaderWindowTopmost;
             if (_readerWindow.IsVisible)
             {
+                if (widgetCreated)
+                {
+                    CollapseToWidget();
+                    return;
+                }
+
                 _widget.Hide();
                 _readerWindow.StartPointerTracking();
+            }
+            else if (!_widget.IsVisible && !_collapsing)
+            {
+                _widgetArmed = true;
+                _widget.Show();
             }
         }
 
@@ -138,13 +153,34 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     private void OnWidgetPointerEntered()
     {
         var book = _activeBook;
-        if (!_widgetArmed || book is null || _widget is null || !_widget.IsVisible)
+        if (!_widgetArmed || _openingFromWidget || book is null || _widget is null || !_widget.IsVisible)
         {
             return;
         }
 
         _widgetArmed = false;
-        _ = OpenAsync(book, book.Model.CurrentChapterIndex, fromWidget: true);
+        _ = OpenFromWidgetAsync(book);
+    }
+
+    private async Task OpenFromWidgetAsync(ReaderBookItemViewModel book)
+    {
+        _openingFromWidget = true;
+        try
+        {
+            await OpenAsync(book, book.Model.CurrentChapterIndex, fromWidget: true);
+        }
+        catch
+        {
+            if (_widget is not null)
+            {
+                _widgetArmed = true;
+                _widget.Show();
+            }
+        }
+        finally
+        {
+            _openingFromWidget = false;
+        }
     }
 
     private ReaderWindow EnsureReaderWindow()

@@ -1,7 +1,7 @@
 <UserControl x:Class="TouchFish.Modules.Reader.ReaderView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             MinWidth="760" MinHeight="600"
+             MinWidth="940" MinHeight="640"
              Background="{DynamicResource AppBackgroundBrush}">
     <Grid Margin="24">
         <Grid.RowDefinitions>
@@ -25,9 +25,9 @@
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="210" />
+                <ColumnDefinition Width="300" />
                 <ColumnDefinition Width="14" />
-                <ColumnDefinition Width="230" />
+                <ColumnDefinition Width="360" />
                 <ColumnDefinition Width="14" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
@@ -38,7 +38,13 @@
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <TextBlock FontWeight="SemiBold" Text="书籍" />
                     <ListBox Grid.Row="1" Margin="0,10" ItemsSource="{Binding Books}"
-                             SelectedItem="{Binding SelectedBook}" DisplayMemberPath="Title" />
+                             SelectedItem="{Binding SelectedBook}" HorizontalContentAlignment="Stretch">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Padding="3" Text="{Binding Title}" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                     <Button Grid.Row="2" Content="删除所选书籍" Command="{Binding DeleteBookCommand}" />
                 </Grid>
             </Border>
@@ -49,7 +55,13 @@
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <TextBlock FontWeight="SemiBold" Text="章节" />
                     <ListBox Grid.Row="1" Margin="0,10" ItemsSource="{Binding Chapters}"
-                             SelectedItem="{Binding SelectedChapter}" DisplayMemberPath="Title" />
+                             SelectedItem="{Binding SelectedChapter}" HorizontalContentAlignment="Stretch">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Padding="3" Text="{Binding Title}" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                     <Button Grid.Row="2" Padding="12,8" Content="打开阅读窗口" Command="{Binding OpenReaderCommand}" />
                 </Grid>
             </Border>

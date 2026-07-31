@@ -4,7 +4,7 @@
         Title="TouchFish"
         Icon="/Assets/app-icon.ico"
         Background="{DynamicResource AppBackgroundBrush}"
-        Width="1180" Height="800" MinWidth="980" MinHeight="700"
+        Width="1360" Height="860" MinWidth="1120" MinHeight="720"
         WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.ColumnDefinitions>
