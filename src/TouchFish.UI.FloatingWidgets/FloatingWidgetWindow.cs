@@ -7,10 +7,11 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using TouchFish.Contracts;
 
-namespace TouchFish.Modules.BossKey;
+namespace TouchFish.UI.FloatingWidgets;
 
-internal sealed class FloatingWidgetWindow : Window
+public sealed class FloatingWidgetWindow : Window
 {
     private const uint MonitorDefaultToNearest = 2;
     private readonly Image _icon;

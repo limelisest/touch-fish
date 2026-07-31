@@ -3,12 +3,6 @@ using TouchFish.Contracts;
 
 namespace TouchFish.Modules.BossKey;
 
-public enum FloatingWidgetTriggerMode
-{
-    Click,
-    PointerHover
-}
-
 public sealed class BossKeySettings
 {
     public int SchemaVersion { get; set; } = 5;

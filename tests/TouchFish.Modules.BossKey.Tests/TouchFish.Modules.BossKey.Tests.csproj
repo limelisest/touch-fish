@@ -16,6 +16,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <ProjectReference Include="..\..\src\Modules\TouchFish.Modules.BossKey.Core\TouchFish.Modules.BossKey.Core.csproj" />
+    <ProjectReference Include="..\..\src\Modules\TouchFish.Modules.Reader.Core\TouchFish.Modules.Reader.Core.csproj" />
     <ProjectReference Include="..\..\src\TouchFish.Contracts\TouchFish.Contracts.csproj" />
   </ItemGroup>
 </Project>

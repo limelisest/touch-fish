@@ -16,6 +16,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private readonly IBossKeySettingsStore _settingsStore;
     private readonly WindowRuleMatcher _matcher;
     private readonly FloatingWidgetManager _floatingWidgetManager;
+    private readonly IToolWindowRegistry _toolWindowRegistry;
     private readonly Dictionary<nint, AutoMinimizeState> _autoMinimizeStates = [];
     private readonly DispatcherTimer _autoMinimizeTimer;
     private DateTimeOffset _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
@@ -28,7 +29,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         IWindowPickerService windowPickerService,
         IBossKeySettingsStore settingsStore,
         WindowRuleMatcher matcher,
-        FloatingWidgetManager floatingWidgetManager)
+        FloatingWidgetManager floatingWidgetManager,
+        IToolWindowRegistry toolWindowRegistry)
     {
         _windowService = windowService;
         _hotkeyService = hotkeyService;
@@ -36,6 +38,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         _settingsStore = settingsStore;
         _matcher = matcher;
         _floatingWidgetManager = floatingWidgetManager;
+        _toolWindowRegistry = toolWindowRegistry;
 
         _autoMinimizeTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
@@ -458,8 +461,12 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             .OrderBy(target => target.Priority)
             .ToArray();
 
-        var action = BossKeyTogglePolicy.Decide(
-            targets.Select(target => _windowService.IsMinimized(target.Window.Handle)).ToArray());
+        var managedWindows = _toolWindowRegistry.Windows.Where(window => window.IsAvailable).ToArray();
+        var minimizedStates = targets
+            .Select(target => _windowService.IsMinimized(target.Window.Handle))
+            .Concat(managedWindows.Select(window => window.IsMinimizedOrHidden))
+            .ToArray();
+        var action = BossKeyTogglePolicy.Decide(minimizedStates);
         if (action == BossKeyToggleAction.None)
         {
             StatusText = "没有找到目标窗口。";
@@ -470,6 +477,14 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         {
             var restored = 0;
             nint foregroundWindow = nint.Zero;
+
+            foreach (var managedWindow in managedWindows)
+            {
+                if (managedWindow.Restore())
+                {
+                    restored++;
+                }
+            }
 
             // Restore bottom-to-top so the first list item is shown last.
             foreach (var target in targets.OrderByDescending(target => target.Priority))
@@ -494,6 +509,14 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             foreach (var target in targets)
             {
                 if (_windowService.IsMinimized(target.Window.Handle) || _windowService.Minimize(target.Window.Handle))
+                {
+                    minimized++;
+                }
+            }
+
+            foreach (var managedWindow in managedWindows)
+            {
+                if (managedWindow.Minimize())
                 {
                     minimized++;
                 }

@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using TouchFish.Contracts;
 
 namespace TouchFish.Modules.BossKey;
 

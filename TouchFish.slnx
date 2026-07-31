@@ -3,10 +3,13 @@
     <Project Path="src/TouchFish.App/TouchFish.App.csproj" />
     <Project Path="src/TouchFish.Contracts/TouchFish.Contracts.csproj" />
     <Project Path="src/TouchFish.Platform.Windows/TouchFish.Platform.Windows.csproj" />
+    <Project Path="src/TouchFish.UI.FloatingWidgets/TouchFish.UI.FloatingWidgets.csproj" />
   </Folder>
   <Folder Name="/src/Modules/">
     <Project Path="src/Modules/TouchFish.Modules.BossKey.Core/TouchFish.Modules.BossKey.Core.csproj" />
     <Project Path="src/Modules/TouchFish.Modules.BossKey/TouchFish.Modules.BossKey.csproj" />
+    <Project Path="src/Modules/TouchFish.Modules.Reader.Core/TouchFish.Modules.Reader.Core.csproj" />
+    <Project Path="src/Modules/TouchFish.Modules.Reader/TouchFish.Modules.Reader.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/TouchFish.Modules.BossKey.Tests/TouchFish.Modules.BossKey.Tests.csproj" />

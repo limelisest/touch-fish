@@ -1,11 +1,13 @@
 using System.IO;
 using System.Text;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchFish.Contracts;
 using TouchFish.Modules.BossKey;
+using TouchFish.Modules.Reader;
 using TouchFish.Platform.Windows;
 
 namespace TouchFish.App;
@@ -39,18 +41,27 @@ public partial class App : System.Windows.Application
             _themeService = new SystemThemeService(this);
             _themeService.Start();
 
-            var builder = Host.CreateApplicationBuilder(e.Args);
+            var builder = Host.CreateApplicationBuilder();
             builder.Services.AddSingleton<IHotkeyService, Win32HotkeyService>();
             builder.Services.AddSingleton<IWindowService, Win32WindowService>();
             builder.Services.AddSingleton<IWindowPickerService, Win32WindowPickerService>();
+            builder.Services.AddSingleton<IToolWindowRegistry, ToolWindowRegistry>();
             builder.Services.AddBossKeyModule();
+            builder.Services.AddReaderModule();
+            builder.Services.AddSingleton<AppSettingsStore>();
+            builder.Services.AddSingleton<StartupTaskService>();
+            builder.Services.AddSingleton<SettingsViewModel>();
             builder.Services.AddSingleton<MainWindow>();
 
             _host = builder.Build();
             await _host.StartAsync();
 
-            var viewModel = _host.Services.GetRequiredService<BossKeyViewModel>();
-            await viewModel.InitializeAsync();
+            var bossKeyViewModel = _host.Services.GetRequiredService<BossKeyViewModel>();
+            var readerViewModel = _host.Services.GetRequiredService<ReaderViewModel>();
+            var settingsViewModel = _host.Services.GetRequiredService<SettingsViewModel>();
+            await bossKeyViewModel.InitializeAsync();
+            await readerViewModel.InitializeAsync();
+            await settingsViewModel.InitializeAsync();
 
             var window = _host.Services.GetRequiredService<MainWindow>();
             MainWindow = window;
@@ -69,7 +80,17 @@ public partial class App : System.Windows.Application
                 _exitRequested = true;
                 Shutdown();
             });
-            window.Show();
+            var silent = e.Args.Any(argument =>
+                string.Equals(argument, "--silent", StringComparison.OrdinalIgnoreCase));
+            if (silent)
+            {
+                // Create the native handle without showing the main window so the global hotkey works.
+                _ = new WindowInteropHelper(window).EnsureHandle();
+            }
+            else
+            {
+                window.Show();
+            }
         }
         catch (Exception exception)
         {

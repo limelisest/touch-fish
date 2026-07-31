@@ -1,0 +1,95 @@
+<UserControl x:Class="TouchFish.Modules.Reader.ReaderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="760" MinHeight="600"
+             Background="{DynamicResource AppBackgroundBrush}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="18" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid>
+            <StackPanel>
+                <TextBlock FontSize="28" FontWeight="SemiBold" Text="看书" />
+                <TextBlock Margin="0,5,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="导入 TXT，选择章节并通过可缩放悬浮窗口阅读。" />
+            </StackPanel>
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button MinWidth="100" Content="打开书库目录" Command="{Binding OpenLibraryFolderCommand}" />
+                <Button MinWidth="100" Margin="8,0,0,0" Content="导入 TXT" Command="{Binding ImportBookCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="210" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="230" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Padding="12" CornerRadius="8"
+                    Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock FontWeight="SemiBold" Text="书籍" />
+                    <ListBox Grid.Row="1" Margin="0,10" ItemsSource="{Binding Books}"
+                             SelectedItem="{Binding SelectedBook}" DisplayMemberPath="Title" />
+                    <Button Grid.Row="2" Content="删除所选书籍" Command="{Binding DeleteBookCommand}" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Padding="12" CornerRadius="8"
+                    Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock FontWeight="SemiBold" Text="章节" />
+                    <ListBox Grid.Row="1" Margin="0,10" ItemsSource="{Binding Chapters}"
+                             SelectedItem="{Binding SelectedChapter}" DisplayMemberPath="Title" />
+                    <Button Grid.Row="2" Padding="12,8" Content="打开阅读窗口" Command="{Binding OpenReaderCommand}" />
+                </Grid>
+            </Border>
+
+            <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto">
+                <Border Padding="16" CornerRadius="8"
+                        Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock FontSize="16" FontWeight="SemiBold" Text="阅读设置" />
+                        <TextBlock Margin="0,12,0,2" Foreground="{DynamicResource TextSecondaryBrush}" Text="书名" />
+                        <TextBox IsReadOnly="True" Text="{Binding SelectedBook.Title}" />
+
+                        <CheckBox Margin="0,16,0,0" Content="阅读窗口始终置顶"
+                                  IsChecked="{Binding SelectedBook.ReaderWindowTopmost, Mode=TwoWay}" />
+
+                        <Separator Margin="0,16" />
+                        <TextBlock FontWeight="SemiBold" Text="阅读小悬浮窗" />
+                        <CheckBox Margin="0,12,0,0" Content="显示小悬浮窗"
+                                  IsChecked="{Binding SelectedBook.FloatingWidgetEnabled, Mode=TwoWay}" />
+                        <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                            <RadioButton GroupName="ReaderWidgetTrigger" Content="点击触发"
+                                         IsChecked="{Binding SelectedBook.IsClickTrigger, Mode=TwoWay}" />
+                            <RadioButton GroupName="ReaderWidgetTrigger" Margin="16,0,0,0" Content="停留 0.3 秒触发"
+                                         IsChecked="{Binding SelectedBook.IsPointerHoverTrigger, Mode=TwoWay}" />
+                        </StackPanel>
+                        <CheckBox Margin="0,12,0,0" Content="拖到屏幕边缘时自动吸附"
+                                  IsChecked="{Binding SelectedBook.FloatingWidgetEdgeSnapEnabled, Mode=TwoWay}" />
+
+                        <Button Margin="0,18,0,0" Padding="12,8" Content="保存阅读设置"
+                                Command="{Binding SaveBookSettingsCommand}" />
+                        <TextBlock Margin="0,12,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="阅读进度、章节、窗口大小和位置会自动记忆。" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </ScrollViewer>
+        </Grid>
+
+        <StackPanel Grid.Row="3" Margin="0,12,0,0">
+            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding LibraryPath}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Margin="0,3,0,0" Text="{Binding StatusText}" TextWrapping="Wrap" />
+        </StackPanel>
+    </Grid>
+</UserControl>

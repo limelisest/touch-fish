@@ -2,13 +2,13 @@
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
-    <RootNamespace>TouchFish.Modules.BossKey</RootNamespace>
+    <RootNamespace>TouchFish.Modules.Reader</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <ProjectReference Include="..\..\TouchFish.Contracts\TouchFish.Contracts.csproj" />
     <ProjectReference Include="..\..\TouchFish.UI.FloatingWidgets\TouchFish.UI.FloatingWidgets.csproj" />
-    <ProjectReference Include="..\TouchFish.Modules.BossKey.Core\TouchFish.Modules.BossKey.Core.csproj" />
+    <ProjectReference Include="..\TouchFish.Modules.Reader.Core\TouchFish.Modules.Reader.Core.csproj" />
   </ItemGroup>
 </Project>

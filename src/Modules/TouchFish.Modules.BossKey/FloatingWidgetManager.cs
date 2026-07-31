@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Threading;
 using TouchFish.Contracts;
+using TouchFish.UI.FloatingWidgets;
 
 namespace TouchFish.Modules.BossKey;
 
