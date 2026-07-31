@@ -23,6 +23,10 @@ public sealed partial class Win32WindowService : IWindowService
     private const uint SwpNoSize = 0x0001;
     private const uint SwpNoMove = 0x0002;
     private const uint SwpShowWindow = 0x0040;
+    private const int GwlExStyle = -20;
+    private const long WsExTopmost = 0x00000008L;
+    private static readonly nint HwndTopmost = new(-1);
+    private static readonly nint HwndNoTopmost = new(-2);
 
     private static readonly PropertyKey AppUserModelIdKey = new(
         new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), 5);
@@ -135,6 +139,7 @@ public sealed partial class Win32WindowService : IWindowService
             : NativeMethods.GetWindowThreadProcessId(foregroundWindow, out _);
         var attachedToForeground = false;
         var attachedToTarget = false;
+        var targetWasTopmost = (NativeMethods.GetWindowLongPtr(windowHandle, GwlExStyle).ToInt64() & WsExTopmost) != 0;
 
         try
         {
@@ -155,7 +160,7 @@ public sealed partial class Win32WindowService : IWindowService
 
             NativeMethods.SetWindowPos(
                 windowHandle,
-                nint.Zero,
+                HwndTopmost,
                 0,
                 0,
                 0,
@@ -165,10 +170,34 @@ public sealed partial class Win32WindowService : IWindowService
             NativeMethods.SetActiveWindow(windowHandle);
             NativeMethods.SetFocus(windowHandle);
             var foregroundSet = NativeMethods.SetForegroundWindow(windowHandle);
+            if (!targetWasTopmost)
+            {
+                NativeMethods.SetWindowPos(
+                    windowHandle,
+                    HwndNoTopmost,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SwpNoMove | SwpNoSize | SwpShowWindow);
+            }
+
             return foregroundSet || NativeMethods.GetForegroundWindow() == windowHandle;
         }
         finally
         {
+            if (!targetWasTopmost)
+            {
+                NativeMethods.SetWindowPos(
+                    windowHandle,
+                    HwndNoTopmost,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SwpNoMove | SwpNoSize | SwpShowWindow);
+            }
+
             if (attachedToTarget)
             {
                 NativeMethods.AttachThreadInput(currentThread, targetThread, false);
@@ -466,6 +495,9 @@ public sealed partial class Win32WindowService : IWindowService
 
         [DllImport("user32.dll", EntryPoint = "GetClassLongPtrW", SetLastError = true)]
         internal static extern nint GetClassLongPtr(nint windowHandle, int index);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+        internal static extern nint GetWindowLongPtr(nint windowHandle, int index);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]

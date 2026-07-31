@@ -9,6 +9,7 @@ public sealed class FloatingWidgetManager : IDisposable
     private readonly IWindowService _windowService;
     private readonly WindowRuleMatcher _matcher;
     private readonly Dictionary<Guid, FloatingWidgetWindow> _widgets = [];
+    private readonly Dictionary<Guid, nint> _targetHandles = [];
     private readonly DispatcherTimer _refreshTimer;
     private IReadOnlyList<WindowRuleItemViewModel> _rules = [];
     private Func<Task>? _saveSettings;
@@ -36,6 +37,7 @@ public sealed class FloatingWidgetManager : IDisposable
         {
             _widgets[staleId].Close();
             _widgets.Remove(staleId);
+            _targetHandles.Remove(staleId);
         }
 
         for (var index = 0; index < enabledRules.Length; index++)
@@ -88,15 +90,22 @@ public sealed class FloatingWidgetManager : IDisposable
 
     private void ActivateRule(WindowRuleItemViewModel rule)
     {
-        var target = _matcher.FindMatches(rule.ToModel(), _windowService.EnumerateTopLevelWindows()).FirstOrDefault();
-        if (target is not null)
+        if (!_targetHandles.TryGetValue(rule.Id, out var handle) || !_windowService.IsWindow(handle))
         {
-            var handle = target.Handle;
-            _windowService.TryFocus(handle);
-            System.Windows.Application.Current.Dispatcher.BeginInvoke(
-                DispatcherPriority.ContextIdle,
-                new Action(() => _windowService.TryFocus(handle)));
+            var target = _matcher.FindMatches(rule.ToModel(), _windowService.EnumerateTopLevelWindows()).FirstOrDefault();
+            if (target is null)
+            {
+                return;
+            }
+
+            handle = target.Handle;
+            _targetHandles[rule.Id] = handle;
         }
+
+        _windowService.TryFocus(handle);
+        System.Windows.Application.Current.Dispatcher.BeginInvoke(
+            DispatcherPriority.ContextIdle,
+            new Action(() => _windowService.TryFocus(handle)));
     }
 
     private void RefreshWidgetContent()
@@ -115,6 +124,15 @@ public sealed class FloatingWidgetManager : IDisposable
             }
 
             var target = _matcher.FindMatches(rule.ToModel(), currentWindows).FirstOrDefault();
+            if (target is null)
+            {
+                _targetHandles.Remove(rule.Id);
+            }
+            else
+            {
+                _targetHandles[rule.Id] = target.Handle;
+            }
+
             var icon = target is null ? null : _windowService.GetWindowIconPng(target.Handle);
             widget.TriggerMode = rule.FloatingWidgetTriggerMode;
             widget.EdgeSnapEnabled = rule.FloatingWidgetEdgeSnapEnabled;
@@ -151,5 +169,6 @@ public sealed class FloatingWidgetManager : IDisposable
         }
 
         _widgets.Clear();
+        _targetHandles.Clear();
     }
 }

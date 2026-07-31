@@ -1,7 +1,6 @@
 <UserControl x:Class="TouchFish.Modules.BossKey.BossKeyView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:core="clr-namespace:TouchFish.Modules.BossKey;assembly=TouchFish.Modules.BossKey.Core"
              MinWidth="800" MinHeight="620"
              Background="{DynamicResource AppBackgroundBrush}">
     <Grid Margin="24">
@@ -179,12 +178,12 @@
                                 <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="悬浮窗触发"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />
                                 <StackPanel Grid.Row="2" Grid.Column="1" Margin="8,3" Orientation="Horizontal">
-                                    <ComboBox Width="150"
-                                              SelectedValuePath="Tag"
-                                              SelectedValue="{Binding SelectedWindow.FloatingWidgetTriggerMode, Mode=TwoWay}">
-                                        <ComboBoxItem Content="点击触发" Tag="{x:Static core:FloatingWidgetTriggerMode.Click}" />
-                                        <ComboBoxItem Content="光标进入直接触发" Tag="{x:Static core:FloatingWidgetTriggerMode.PointerHover}" />
-                                    </ComboBox>
+                                    <RadioButton GroupName="FloatingWidgetTrigger" VerticalAlignment="Center"
+                                                 Content="点击触发"
+                                                 IsChecked="{Binding SelectedWindow.IsClickTrigger, Mode=TwoWay}" />
+                                    <RadioButton GroupName="FloatingWidgetTrigger" Margin="14,0,0,0" VerticalAlignment="Center"
+                                                 Content="光标停留 0.3 秒触发"
+                                                 IsChecked="{Binding SelectedWindow.IsPointerHoverTrigger, Mode=TwoWay}" />
                                     <TextBlock Margin="12,0,0,0" VerticalAlignment="Center"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                Text="悬浮窗可拖动，最大 120 × 40" />

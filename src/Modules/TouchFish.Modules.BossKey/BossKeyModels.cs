@@ -22,6 +22,36 @@ public partial class WindowRuleItemViewModel : ObservableObject
     [ObservableProperty] private bool _floatingWidgetEdgeSnapEnabled = true;
     [ObservableProperty] private string _currentState = "未检查";
 
+    public bool IsClickTrigger
+    {
+        get => FloatingWidgetTriggerMode == FloatingWidgetTriggerMode.Click;
+        set
+        {
+            if (value)
+            {
+                FloatingWidgetTriggerMode = FloatingWidgetTriggerMode.Click;
+            }
+        }
+    }
+
+    public bool IsPointerHoverTrigger
+    {
+        get => FloatingWidgetTriggerMode == FloatingWidgetTriggerMode.PointerHover;
+        set
+        {
+            if (value)
+            {
+                FloatingWidgetTriggerMode = FloatingWidgetTriggerMode.PointerHover;
+            }
+        }
+    }
+
+    partial void OnFloatingWidgetTriggerModeChanged(FloatingWidgetTriggerMode value)
+    {
+        OnPropertyChanged(nameof(IsClickTrigger));
+        OnPropertyChanged(nameof(IsPointerHoverTrigger));
+    }
+
     public static WindowRuleItemViewModel FromModel(WindowRule model) => new()
     {
         Id = model.Id,
