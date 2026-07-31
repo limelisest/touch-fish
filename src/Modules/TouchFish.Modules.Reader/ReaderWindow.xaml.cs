@@ -20,6 +20,7 @@ public partial class ReaderWindow : Window
     private int _loadedChapterIndex = -1;
     private HwndSource? _windowSource;
     private bool _allowClose;
+    private bool _isClosed;
     private bool _loading;
     private bool _pointerSeenInside;
 
@@ -29,7 +30,11 @@ public partial class ReaderWindow : Window
         InitializeComponent();
         Closing += OnClosing;
         SourceInitialized += OnSourceInitialized;
-        Closed += (_, _) => _windowSource?.RemoveHook(WindowMessageHook);
+        Closed += (_, _) =>
+        {
+            _isClosed = true;
+            _windowSource?.RemoveHook(WindowMessageHook);
+        };
         LocationChanged += (_, _) => ScheduleSave();
         SizeChanged += (_, _) => ScheduleSave();
         PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
@@ -293,7 +298,7 @@ public partial class ReaderWindow : Window
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
-        if (_allowClose)
+        if (_allowClose || Application.Current?.Dispatcher.HasShutdownStarted == true)
         {
             return;
         }
@@ -398,12 +403,20 @@ public partial class ReaderWindow : Window
         }
     }
 
-    public void Shutdown()
+    public void PrepareForShutdown()
     {
         _allowClose = true;
         _saveTimer.Stop();
         _pointerTimer.Stop();
-        Close();
+    }
+
+    public void Shutdown()
+    {
+        PrepareForShutdown();
+        if (!_isClosed)
+        {
+            Close();
+        }
     }
 
     private static class NativeMethods

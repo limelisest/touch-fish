@@ -17,6 +17,7 @@ public partial class App : System.Windows.Application
     private IHost? _host;
     private SystemThemeService? _themeService;
     private TrayIconService? _trayIcon;
+    private ReaderWindowManager? _readerWindowManager;
     private bool _exitRequested;
     private int _fatalReported;
 
@@ -58,6 +59,7 @@ public partial class App : System.Windows.Application
 
             var bossKeyViewModel = _host.Services.GetRequiredService<BossKeyViewModel>();
             var readerViewModel = _host.Services.GetRequiredService<ReaderViewModel>();
+            _readerWindowManager = _host.Services.GetRequiredService<ReaderWindowManager>();
             var settingsViewModel = _host.Services.GetRequiredService<SettingsViewModel>();
             await bossKeyViewModel.InitializeAsync();
             await readerViewModel.InitializeAsync();
@@ -78,6 +80,7 @@ public partial class App : System.Windows.Application
             _trayIcon = new TrayIconService(window, () =>
             {
                 _exitRequested = true;
+                PrepareReaderShutdown();
                 Shutdown();
             });
             var silent = e.Args.Any(argument =>
@@ -118,6 +121,7 @@ public partial class App : System.Windows.Application
             MessageBoxButton.OK,
             MessageBoxImage.Error);
         _exitRequested = true;
+        PrepareReaderShutdown();
         Shutdown(-1);
     }
 
@@ -149,8 +153,27 @@ public partial class App : System.Windows.Application
         }
     }
 
+    private void PrepareReaderShutdown()
+    {
+        try
+        {
+            _readerWindowManager?.PrepareForShutdown();
+        }
+        catch
+        {
+            // Shutdown must continue even if a tool window has already been destroyed by WPF.
+        }
+    }
+
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        PrepareReaderShutdown();
+        base.OnSessionEnding(e);
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
+        PrepareReaderShutdown();
         _trayIcon?.Dispose();
         _themeService?.Dispose();
 

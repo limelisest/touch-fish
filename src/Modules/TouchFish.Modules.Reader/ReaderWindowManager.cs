@@ -14,6 +14,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     private bool _widgetArmed = true;
     private bool _collapsing;
     private bool _openingFromWidget;
+    private bool _isShuttingDown;
 
     public ReaderWindowManager(ReaderLibraryService library, IToolWindowRegistry registry)
     {
@@ -30,6 +31,11 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
 
     public void SetActiveBook(ReaderBookItemViewModel? book)
     {
+        if (_isShuttingDown)
+        {
+            return;
+        }
+
         if (_activeBook?.Id != book?.Id)
         {
             _widget?.Close();
@@ -57,6 +63,11 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
 
     private async Task OpenAsync(ReaderBookItemViewModel book, int chapterIndex, bool fromWidget)
     {
+        if (_isShuttingDown)
+        {
+            return;
+        }
+
         _activeBook = book;
         book.ApplyToModel();
         var window = EnsureReaderWindow();
@@ -90,6 +101,11 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
 
     public void SyncFloatingWidget()
     {
+        if (_isShuttingDown)
+        {
+            return;
+        }
+
         if (_activeBook is null)
         {
             _readerWindow?.StopPointerTracking();
@@ -228,7 +244,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
 
     private void CollapseToWidget()
     {
-        if (_collapsing || _activeBook is null || _readerWindow is null || !_activeBook.FloatingWidgetEnabled)
+        if (_isShuttingDown || _collapsing || _activeBook is null || _readerWindow is null || !_activeBook.FloatingWidgetEnabled)
         {
             return;
         }
@@ -259,8 +275,16 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
                 _widget.SetInitialPosition(
                     book.Model.FloatingWidgetLeft.Value,
                     book.Model.FloatingWidgetTop.Value);
-                _widget.Show();
-                _ = RearmWidgetAsync(_widget);
+                try
+                {
+                    _widget.Show();
+                    _ = RearmWidgetAsync(_widget);
+                }
+                catch (InvalidOperationException)
+                {
+                    // WPF may already be closing all windows during application shutdown.
+                    _widget = null;
+                }
             }
 
             _ = SaveBookAsync(book);
@@ -274,7 +298,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     private async Task RearmWidgetAsync(FloatingWidgetWindow widget)
     {
         await Task.Delay(250);
-        if (ReferenceEquals(widget, _widget) && !widget.IsMouseOver)
+        if (!_isShuttingDown && ReferenceEquals(widget, _widget) && !widget.IsMouseOver)
         {
             _widgetArmed = true;
         }
@@ -323,10 +347,31 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         }
     }
 
+    public void PrepareForShutdown()
+    {
+        if (_isShuttingDown)
+        {
+            return;
+        }
+
+        _isShuttingDown = true;
+        _readerWindow?.PrepareForShutdown();
+        var widget = _widget;
+        _widget = null;
+        try
+        {
+            widget?.Close();
+        }
+        catch (InvalidOperationException)
+        {
+            // The application shutdown sequence may have already destroyed the native window.
+        }
+    }
+
     public void Dispose()
     {
+        PrepareForShutdown();
         _registry.Unregister(Id);
-        _widget?.Close();
         _readerWindow?.Shutdown();
     }
 }
