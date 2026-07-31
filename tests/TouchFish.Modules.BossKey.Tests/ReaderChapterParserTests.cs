@@ -1,3 +1,4 @@
+using System.Text;
 using TouchFish.Modules.Reader;
 using Xunit;
 
@@ -53,5 +54,36 @@ public sealed class ReaderChapterParserTests
         var expected = Path.Combine("LimeLisest", "TouchFish", "books");
 
         Assert.EndsWith(expected, library.LibraryRoot, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Import_Gb18030Book_PersistsMetadataWithoutNamedFloatingPointValues()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        var temporaryRoot = Path.Combine(Path.GetTempPath(), $"TouchFishTests-{Guid.NewGuid():N}");
+        var sourcePath = Path.Combine(temporaryRoot, "凡人修仙传.txt");
+        Directory.CreateDirectory(temporaryRoot);
+        try
+        {
+            const string text = "声明：测试文本\r\n第一章 初入江湖\r\n正文内容\r\n第二章 修炼\r\n更多正文";
+            await File.WriteAllBytesAsync(sourcePath, Encoding.GetEncoding("GB18030").GetBytes(text));
+            var libraryPath = Path.Combine(temporaryRoot, "books");
+            var library = new ReaderLibraryService(_parser, libraryPath);
+
+            var imported = await library.ImportAsync(sourcePath);
+            var loaded = Assert.Single(await library.LoadBooksAsync());
+            var chapter = await library.ReadChapterAsync(loaded, 1);
+            var metadata = await File.ReadAllTextAsync(Path.Combine(libraryPath, imported.Id.ToString("N"), "metadata.json"));
+
+            Assert.Equal("凡人修仙传", imported.Title);
+            Assert.Equal(3, imported.Chapters.Count);
+            Assert.Contains("第一章 初入江湖", chapter);
+            Assert.DoesNotContain("NaN", metadata, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Infinity", metadata, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (Directory.Exists(temporaryRoot)) Directory.Delete(temporaryRoot, true);
+        }
     }
 }

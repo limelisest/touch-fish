@@ -101,9 +101,17 @@ public partial class ReaderViewModel(
             SelectedBook = item;
             StatusText = $"已导入《{item.Title}》，识别到 {item.Chapters.Count} 个章节。";
         }
+        catch (UnauthorizedAccessException)
+        {
+            StatusText = "导入失败：没有读取源文件或写入文档书库的权限。";
+        }
+        catch (IOException exception)
+        {
+            StatusText = $"导入失败：文件正在使用或磁盘写入失败。{exception.Message}";
+        }
         catch (Exception exception)
         {
-            StatusText = $"导入失败：{exception.Message}";
+            StatusText = $"导入失败：无法解析或保存该 TXT 文件。{exception.Message}";
         }
     }
 

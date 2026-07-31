@@ -33,6 +33,8 @@ public interface IWindowService
     WindowDescriptor? InspectAtScreenPoint(int x, int y);
     IReadOnlyList<WindowDescriptor> EnumerateTopLevelWindows();
     nint GetForegroundWindowHandle();
+    uint GetWindowDpi(nint windowHandle);
+    bool MoveWindowTopLeft(nint windowHandle, int left, int top);
     byte[]? GetWindowIconPng(nint windowHandle);
     bool TryFocus(nint windowHandle);
     bool IsWindow(nint windowHandle);

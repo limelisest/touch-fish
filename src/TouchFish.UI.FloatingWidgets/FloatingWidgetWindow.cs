@@ -90,6 +90,8 @@ public sealed class FloatingWidgetWindow : Window
     public FloatingWidgetTriggerMode TriggerMode { get; set; }
     public bool EdgeSnapEnabled { get; set; } = true;
 
+    public event Action? PointerEntered;
+    public event Action? PointerExited;
     public event Action? ActivationRequested;
     public event Action<double, double>? PositionChanged;
 
@@ -190,6 +192,7 @@ public sealed class FloatingWidgetWindow : Window
 
     private void OnMouseEnter(object sender, MouseEventArgs e)
     {
+        PointerEntered?.Invoke();
         if (TriggerMode != FloatingWidgetTriggerMode.PointerHover)
         {
             return;
@@ -202,6 +205,7 @@ public sealed class FloatingWidgetWindow : Window
     private void OnMouseLeave(object sender, MouseEventArgs e)
     {
         _hoverTimer.Stop();
+        PointerExited?.Invoke();
     }
 
     private void OnHoverTimerTick(object? sender, EventArgs e)

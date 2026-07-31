@@ -4,15 +4,29 @@ using System.Text.Json.Serialization;
 
 namespace TouchFish.Modules.Reader;
 
-public sealed class ReaderLibraryService(ReaderChapterParser chapterParser)
+public sealed class ReaderLibraryService
 {
     private const string MetadataFileName = "metadata.json";
+    private readonly ReaderChapterParser _chapterParser;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private readonly string _libraryRoot = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-        "LimeLisest",
-        "TouchFish",
-        "books");
+    private readonly string _libraryRoot;
+
+    public ReaderLibraryService(ReaderChapterParser chapterParser)
+        : this(
+            chapterParser,
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "LimeLisest",
+                "TouchFish",
+                "books"))
+    {
+    }
+
+    public ReaderLibraryService(ReaderChapterParser chapterParser, string libraryRoot)
+    {
+        _chapterParser = chapterParser;
+        _libraryRoot = libraryRoot;
+    }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -26,6 +40,7 @@ public sealed class ReaderLibraryService(ReaderChapterParser chapterParser)
     public async Task<IReadOnlyList<ReaderBook>> LoadBooksAsync(CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(_libraryRoot);
+        CleanupIncompleteImports();
         var books = new List<ReaderBook>();
         foreach (var metadataPath in Directory.EnumerateFiles(_libraryRoot, MetadataFileName, SearchOption.AllDirectories))
         {
@@ -59,13 +74,25 @@ public sealed class ReaderLibraryService(ReaderChapterParser chapterParser)
             Id = Guid.NewGuid(),
             Title = Path.GetFileNameWithoutExtension(sourcePath),
             ImportedEncoding = encoding.WebName,
-            Chapters = chapterParser.Parse(text).ToList()
+            Chapters = _chapterParser.Parse(text).ToList()
         };
         var directory = GetBookDirectory(book.Id);
         Directory.CreateDirectory(directory);
-        await File.WriteAllTextAsync(Path.Combine(directory, book.FileName), text, new UTF8Encoding(false), cancellationToken);
-        await SaveAsync(book, cancellationToken);
-        return book;
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(directory, book.FileName), text, new UTF8Encoding(false), cancellationToken);
+            await SaveAsync(book, cancellationToken);
+            return book;
+        }
+        catch
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, true);
+            }
+
+            throw;
+        }
     }
 
     public async Task<string> ReadChapterAsync(ReaderBook book, int chapterIndex, CancellationToken cancellationToken = default)
@@ -115,6 +142,25 @@ public sealed class ReaderLibraryService(ReaderChapterParser chapterParser)
         }
 
         return Task.CompletedTask;
+    }
+
+    private void CleanupIncompleteImports()
+    {
+        foreach (var directory in Directory.EnumerateDirectories(_libraryRoot))
+        {
+            var name = Path.GetFileName(directory);
+            if (Guid.TryParseExact(name, "N", out _) && !File.Exists(Path.Combine(directory, MetadataFileName)))
+            {
+                try
+                {
+                    Directory.Delete(directory, true);
+                }
+                catch
+                {
+                    // A locked incomplete import can be retried on the next launch.
+                }
+            }
+        }
     }
 
     private string GetBookDirectory(Guid id) => Path.Combine(_libraryRoot, id.ToString("N"));

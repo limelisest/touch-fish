@@ -175,19 +175,11 @@
                                           Content="为此窗口显示悬浮窗"
                                           IsChecked="{Binding SelectedWindow.FloatingWidgetEnabled, Mode=TwoWay}" />
 
-                                <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="悬浮窗触发"
+                                <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="显示逻辑"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />
-                                <StackPanel Grid.Row="2" Grid.Column="1" Margin="8,3" Orientation="Horizontal">
-                                    <RadioButton GroupName="FloatingWidgetTrigger" VerticalAlignment="Center"
-                                                 Content="点击触发"
-                                                 IsChecked="{Binding SelectedWindow.IsClickTrigger, Mode=TwoWay}" />
-                                    <RadioButton GroupName="FloatingWidgetTrigger" Margin="14,0,0,0" VerticalAlignment="Center"
-                                                 Content="光标停留 0.3 秒触发"
-                                                 IsChecked="{Binding SelectedWindow.IsPointerHoverTrigger, Mode=TwoWay}" />
-                                    <TextBlock Margin="12,0,0,0" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Text="悬浮窗可拖动，最大 120 × 40" />
-                                </StackPanel>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Margin="8,6"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"
+                                           Text="鼠标移入悬浮窗时显示目标并隐藏悬浮窗；目标失去焦点后自动最小化，悬浮窗显示在目标窗口左上角。" />
 
                                 <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="边缘吸附"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />

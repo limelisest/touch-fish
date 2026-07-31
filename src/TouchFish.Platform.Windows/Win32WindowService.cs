@@ -22,6 +22,8 @@ public sealed partial class Win32WindowService : IWindowService
     private const uint SmtoAbortIfHung = 0x0002;
     private const uint SwpNoSize = 0x0001;
     private const uint SwpNoMove = 0x0002;
+    private const uint SwpNoZOrder = 0x0004;
+    private const uint SwpNoActivate = 0x0010;
     private const uint SwpShowWindow = 0x0040;
     private const int GwlExStyle = -20;
     private const long WsExTopmost = 0x00000008L;
@@ -68,6 +70,24 @@ public sealed partial class Win32WindowService : IWindowService
     }
 
     public nint GetForegroundWindowHandle() => NativeMethods.GetForegroundWindow();
+
+    public uint GetWindowDpi(nint windowHandle)
+    {
+        var dpi = NativeMethods.GetDpiForWindow(windowHandle);
+        return dpi == 0 ? 96u : dpi;
+    }
+
+    public bool MoveWindowTopLeft(nint windowHandle, int left, int top)
+    {
+        return NativeMethods.IsWindow(windowHandle) && NativeMethods.SetWindowPos(
+            windowHandle,
+            nint.Zero,
+            left,
+            top,
+            0,
+            0,
+            SwpNoSize | SwpNoZOrder | SwpNoActivate);
+    }
 
     public byte[]? GetWindowIconPng(nint windowHandle)
     {
@@ -522,6 +542,9 @@ public sealed partial class Win32WindowService : IWindowService
 
         [DllImport("user32.dll")]
         internal static extern uint GetWindowThreadProcessId(nint windowHandle, out uint processId);
+
+        [DllImport("user32.dll")]
+        internal static extern uint GetDpiForWindow(nint windowHandle);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]

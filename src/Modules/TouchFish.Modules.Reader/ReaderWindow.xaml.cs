@@ -1,5 +1,7 @@
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Threading;
 
 namespace TouchFish.Modules.Reader;
@@ -8,9 +10,11 @@ public partial class ReaderWindow : Window
 {
     private readonly ReaderLibraryService _library;
     private readonly DispatcherTimer _saveTimer;
+    private readonly DispatcherTimer _pointerTimer;
     private ReaderBook? _book;
     private bool _allowClose;
     private bool _loading;
+    private bool _pointerSeenInside;
 
     public ReaderWindow(ReaderLibraryService library)
     {
@@ -29,9 +33,16 @@ public partial class ReaderWindow : Window
             _saveTimer.Stop();
             await SaveStateAsync();
         };
+        _pointerTimer = new DispatcherTimer(DispatcherPriority.Input)
+        {
+            Interval = TimeSpan.FromMilliseconds(80)
+        };
+        _pointerTimer.Tick += OnPointerTimerTick;
     }
 
     public ReaderBook? CurrentBook => _book;
+    public event Action? PointerExited;
+    public event Action? DismissRequested;
 
     public async Task ShowBookAsync(ReaderBook book, int chapterIndex)
     {
@@ -45,10 +56,11 @@ public partial class ReaderWindow : Window
         Width = Math.Max(MinWidth, book.ReaderWindowWidth);
         Height = Math.Max(MinHeight, book.ReaderWindowHeight);
         Topmost = book.ReaderWindowTopmost;
-        if (!double.IsNaN(book.ReaderWindowLeft) && !double.IsNaN(book.ReaderWindowTop))
+        if (book.ReaderWindowLeft is { } left && book.ReaderWindowTop is { } top)
         {
-            Left = book.ReaderWindowLeft;
-            Top = book.ReaderWindowTop;
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = left;
+            Top = top;
         }
         else
         {
@@ -129,8 +141,51 @@ public partial class ReaderWindow : Window
         }
 
         e.Cancel = true;
+        DismissRequested?.Invoke();
+        if (IsVisible)
+        {
+            _ = SaveStateAsync();
+            Hide();
+        }
+    }
+
+    public void StartPointerTracking()
+    {
+        _pointerSeenInside = false;
+        _pointerTimer.Start();
+    }
+
+    public void StopPointerTracking() => _pointerTimer.Stop();
+
+    public void HideForWidget()
+    {
+        _pointerTimer.Stop();
         _ = SaveStateAsync();
         Hide();
+    }
+
+    private void OnPointerTimerTick(object? sender, EventArgs e)
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == nint.Zero || !NativeMethods.GetCursorPos(out var point) || !NativeMethods.GetWindowRect(handle, out var rect))
+        {
+            return;
+        }
+
+        const int tolerance = 4;
+        var inside = point.X >= rect.Left - tolerance && point.X < rect.Right + tolerance &&
+                     point.Y >= rect.Top - tolerance && point.Y < rect.Bottom + tolerance;
+        if (inside)
+        {
+            _pointerSeenInside = true;
+            return;
+        }
+
+        if (_pointerSeenInside)
+        {
+            _pointerTimer.Stop();
+            PointerExited?.Invoke();
+        }
     }
 
     private void ScheduleSave()
@@ -182,6 +237,34 @@ public partial class ReaderWindow : Window
     {
         _allowClose = true;
         _saveTimer.Stop();
+        _pointerTimer.Stop();
         Close();
+    }
+
+    private static class NativeMethods
+    {
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetCursorPos(out Point point);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetWindowRect(nint windowHandle, out Rect rect);
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Point
+        {
+            public int X;
+            public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Rect
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
     }
 }

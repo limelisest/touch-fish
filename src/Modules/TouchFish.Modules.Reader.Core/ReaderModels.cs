@@ -12,8 +12,8 @@ public sealed class ReaderBook
     public List<ReaderChapter> Chapters { get; set; } = [];
     public int CurrentChapterIndex { get; set; }
     public int CurrentCharacterOffset { get; set; }
-    public double ReaderWindowLeft { get; set; } = double.NaN;
-    public double ReaderWindowTop { get; set; } = double.NaN;
+    public double? ReaderWindowLeft { get; set; }
+    public double? ReaderWindowTop { get; set; }
     public double ReaderWindowWidth { get; set; } = 560;
     public double ReaderWindowHeight { get; set; } = 420;
     public bool ReaderWindowTopmost { get; set; } = true;

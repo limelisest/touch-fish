@@ -15,23 +15,16 @@
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
             <Grid Margin="12">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="18" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <StackPanel Orientation="Horizontal" Margin="8,8,0,0">
-                    <Image Width="28" Height="28" Source="/Assets/app-icon.png" />
-                    <TextBlock Margin="9,0,0,0" VerticalAlignment="Center"
-                               FontSize="18" FontWeight="SemiBold" Text="TouchFish" />
-                </StackPanel>
-                <ListBox x:Name="PrimaryNavigation" Grid.Row="2" BorderThickness="0"
+                <ListBox x:Name="PrimaryNavigation" BorderThickness="0"
                          Background="Transparent" SelectedIndex="0"
                          SelectionChanged="Navigation_OnSelectionChanged">
                     <ListBoxItem Margin="0,0,0,5" Padding="12,10" Content="老板键" />
                     <ListBoxItem Margin="0,0,0,5" Padding="12,10" Content="看书" />
                 </ListBox>
-                <ListBox x:Name="SettingsNavigation" Grid.Row="3" BorderThickness="0"
+                <ListBox x:Name="SettingsNavigation" Grid.Row="1" BorderThickness="0"
                          Background="Transparent" SelectionChanged="SettingsNavigation_OnSelectionChanged">
                     <ListBoxItem Padding="12,10" Content="设置" />
                 </ListBox>
