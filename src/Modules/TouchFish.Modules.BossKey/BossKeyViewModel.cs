@@ -10,6 +10,7 @@ public partial class BossKeyViewModel : ObservableObject
     private const string HotkeyOwner = "boss-key.default";
     private readonly IWindowService _windowService;
     private readonly IHotkeyService _hotkeyService;
+    private readonly IWindowPickerService _windowPickerService;
     private readonly IBossKeySettingsStore _settingsStore;
     private readonly WindowRuleMatcher _matcher;
     private readonly List<WindowPlacementSnapshot> _placements = [];
@@ -20,11 +21,13 @@ public partial class BossKeyViewModel : ObservableObject
     public BossKeyViewModel(
         IWindowService windowService,
         IHotkeyService hotkeyService,
+        IWindowPickerService windowPickerService,
         IBossKeySettingsStore settingsStore,
         WindowRuleMatcher matcher)
     {
         _windowService = windowService;
         _hotkeyService = hotkeyService;
+        _windowPickerService = windowPickerService;
         _settingsStore = settingsStore;
         _matcher = matcher;
     }
@@ -34,7 +37,7 @@ public partial class BossKeyViewModel : ObservableObject
     [ObservableProperty] private WindowRuleItemViewModel? _selectedWindow;
     [ObservableProperty] private string _hotkeyText = "Ctrl + Alt + M";
     [ObservableProperty] private string _statusText = "正在初始化……";
-    [ObservableProperty] private string _pickerHint = "按住下面的准星按钮，拖到目标窗口后松开";
+    [ObservableProperty] private string _pickerHint = "点击按钮后 TouchFish 会隐藏；单击目标窗口，按 Esc 取消";
 
     public async Task InitializeAsync()
     {
@@ -83,18 +86,27 @@ public partial class BossKeyViewModel : ObservableObject
         return true;
     }
 
-    public WindowDescriptor? PreviewAt(int screenX, int screenY)
+    public async Task<WindowDescriptor?> PickWindowAsync()
     {
-        var window = _windowService.InspectAtScreenPoint(screenX, screenY);
-        PickerHint = window is null
-            ? "没有检测到窗口"
-            : $"{window.Title}  ·  {window.ProcessName}";
-        return window;
+        PickerHint = "选择模式：单击目标窗口，按 Esc 取消";
+        return await _windowPickerService.PickWindowAsync();
+    }
+
+    public void CancelWindowPicking()
+    {
+        PickerHint = "点击按钮后 TouchFish 会隐藏；单击目标窗口，按 Esc 取消";
+        StatusText = "已退出窗口选择模式。";
+    }
+
+    public void ReportWindowPickingError(Exception exception)
+    {
+        PickerHint = "点击按钮后 TouchFish 会隐藏；单击目标窗口，按 Esc 取消";
+        StatusText = $"窗口选择失败：{exception.Message}";
     }
 
     public async Task AddWindowAsync(WindowDescriptor? window)
     {
-        PickerHint = "按住下面的准星按钮，拖到目标窗口后松开";
+        PickerHint = "点击按钮后 TouchFish 会隐藏；单击目标窗口，按 Esc 取消";
         if (window is null)
         {
             StatusText = "没有选择到有效窗口。";

@@ -1,7 +1,8 @@
 <UserControl x:Class="TouchFish.Modules.BossKey.BossKeyView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             MinWidth="760" MinHeight="500">
+             MinWidth="760" MinHeight="500"
+             Background="{DynamicResource AppBackgroundBrush}">
     <Grid Margin="28">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -18,7 +19,7 @@
             <TextBlock Margin="0,6,0,0" Foreground="#666" Text="按一次最小化已添加的窗口，再按一次恢复。" />
         </StackPanel>
 
-        <Border Grid.Row="1" Margin="0,22,0,0" Padding="16" CornerRadius="8" Background="#F4F5F7">
+        <Border Grid.Row="1" Margin="0,22,0,0" Padding="16" CornerRadius="8" Background="White">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="140" />
@@ -62,12 +63,8 @@
                     Grid.Column="1"
                     MinWidth="160"
                     Padding="14,8"
-                    Cursor="Cross"
-                    Content="⊕  拖动准星添加"
-                    PreviewMouseLeftButtonDown="PickerButton_OnPreviewMouseLeftButtonDown"
-                    PreviewMouseMove="PickerButton_OnPreviewMouseMove"
-                    PreviewMouseLeftButtonUp="PickerButton_OnPreviewMouseLeftButtonUp"
-                    LostMouseCapture="PickerButton_OnLostMouseCapture" />
+                    Content="⊕  点击选择窗口"
+                    Click="PickerButton_OnClick" />
         </Grid>
 
         <DataGrid Grid.Row="4"

@@ -3,6 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:bossKey="clr-namespace:TouchFish.Modules.BossKey;assembly=TouchFish.Modules.BossKey"
         Title="TouchFish"
+        Icon="/Assets/app-icon.ico"
+        Background="{DynamicResource AppBackgroundBrush}"
         Width="980"
         Height="720"
         MinWidth="820"

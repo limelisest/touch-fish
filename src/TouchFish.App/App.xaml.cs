@@ -38,6 +38,7 @@ public partial class App : System.Windows.Application
             var builder = Host.CreateApplicationBuilder(e.Args);
             builder.Services.AddSingleton<IHotkeyService, Win32HotkeyService>();
             builder.Services.AddSingleton<IWindowService, Win32WindowService>();
+            builder.Services.AddSingleton<IWindowPickerService, Win32WindowPickerService>();
             builder.Services.AddBossKeyModule();
             builder.Services.AddSingleton<MainWindow>();
 
@@ -106,7 +107,7 @@ public partial class App : System.Windows.Application
             Directory.CreateDirectory(directory);
             var path = Path.Combine(directory, $"crash-{DateTime.Now:yyyyMMdd-HHmmss}.log");
             var content = new StringBuilder()
-                .AppendLine($"TouchFish 0.1.1")
+                .AppendLine($"TouchFish {typeof(App).Assembly.GetName().Version}")
                 .AppendLine($"Time: {DateTimeOffset.Now:O}")
                 .AppendLine($"OS: {Environment.OSVersion}")
                 .AppendLine($"Runtime: {Environment.Version}")

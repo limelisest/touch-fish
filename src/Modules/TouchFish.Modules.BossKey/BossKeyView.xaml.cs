@@ -8,7 +8,6 @@ namespace TouchFish.Modules.BossKey;
 public partial class BossKeyView : UserControl
 {
     private bool _isPicking;
-    private WindowDescriptor? _previewWindow;
 
     public BossKeyView()
     {
@@ -61,56 +60,48 @@ public partial class BossKeyView : UserControl
         e.Handled = true;
     }
 
-    private void PickerButton_OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private async void PickerButton_OnClick(object sender, RoutedEventArgs e)
     {
+        if (_isPicking || ViewModel is null)
+        {
+            return;
+        }
+
         _isPicking = true;
-        _previewWindow = null;
-        PickerButton.CaptureMouse();
-        Mouse.OverrideCursor = Cursors.Cross;
-        e.Handled = true;
-    }
+        PickerButton.IsEnabled = false;
+        var hostWindow = Window.GetWindow(this);
+        WindowDescriptor? selectedWindow = null;
 
-    private void PickerButton_OnPreviewMouseMove(object sender, MouseEventArgs e)
-    {
-        if (!_isPicking || ViewModel is null)
+        try
         {
+            hostWindow?.Hide();
+            await Task.Delay(150);
+            selectedWindow = await ViewModel.PickWindowAsync();
+        }
+        catch (Exception exception)
+        {
+            ViewModel.ReportWindowPickingError(exception);
+            return;
+        }
+        finally
+        {
+            if (hostWindow is not null)
+            {
+                hostWindow.Show();
+                hostWindow.Activate();
+            }
+
+            PickerButton.IsEnabled = true;
+            _isPicking = false;
+        }
+
+        if (selectedWindow is null)
+        {
+            ViewModel.CancelWindowPicking();
             return;
         }
 
-        var screenPoint = PickerButton.PointToScreen(e.GetPosition(PickerButton));
-        _previewWindow = ViewModel.PreviewAt((int)screenPoint.X, (int)screenPoint.Y);
-    }
-
-    private async void PickerButton_OnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-    {
-        if (!_isPicking || ViewModel is null)
-        {
-            return;
-        }
-
-        var screenPoint = PickerButton.PointToScreen(e.GetPosition(PickerButton));
-        _previewWindow = ViewModel.PreviewAt((int)screenPoint.X, (int)screenPoint.Y);
-        EndPicking();
-        await ViewModel.AddWindowAsync(_previewWindow);
-        e.Handled = true;
-    }
-
-    private void PickerButton_OnLostMouseCapture(object sender, MouseEventArgs e)
-    {
-        if (_isPicking)
-        {
-            EndPicking();
-        }
-    }
-
-    private void EndPicking()
-    {
-        _isPicking = false;
-        Mouse.OverrideCursor = null;
-        if (Mouse.Captured == PickerButton)
-        {
-            PickerButton.ReleaseMouseCapture();
-        }
+        await ViewModel.AddWindowAsync(selectedWindow);
     }
 
     private static string GetKeyName(Key key) => key switch

@@ -23,6 +23,11 @@ public sealed record WindowPlacementSnapshot(
     int Right,
     int Bottom);
 
+public interface IWindowPickerService
+{
+    Task<WindowDescriptor?> PickWindowAsync(CancellationToken cancellationToken = default);
+}
+
 public interface IWindowService
 {
     WindowDescriptor? InspectAtScreenPoint(int x, int y);
