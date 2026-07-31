@@ -48,10 +48,11 @@ public partial class BossKeyViewModel : ObservableObject
             Windows.Add(WindowRuleItemViewModel.FromModel(rule));
         }
 
-        RefreshWindowStates();
+        // Do not inspect every foreign window during startup. Some protected
+        // windows reject shell property access; matching runs on demand instead.
         StatusText = Windows.Count == 0
             ? "请先添加需要最小化的窗口。"
-            : $"已载入 {Windows.Count} 条窗口规则。";
+            : $"已载入 {Windows.Count} 条窗口规则；点击刷新可检查状态。";
     }
 
     public void AttachHotkey(nint mainWindowHandle)

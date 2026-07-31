@@ -120,31 +120,39 @@ public sealed partial class Win32WindowService : IWindowService
 
     private static WindowDescriptor? Inspect(nint handle)
     {
-        if (handle == nint.Zero || !NativeMethods.IsWindow(handle))
+        try
         {
+            if (handle == nint.Zero || !NativeMethods.IsWindow(handle))
+            {
+                return null;
+            }
+
+            NativeMethods.GetWindowThreadProcessId(handle, out var processId);
+            var title = GetWindowText(handle);
+            var className = GetClassName(handle);
+            var processPath = GetProcessPath(processId);
+            var processName = string.IsNullOrWhiteSpace(processPath)
+                ? TryGetProcessName(processId)
+                : Path.GetFileNameWithoutExtension(processPath);
+            var appUserModelId = GetWindowProperty(handle, AppUserModelIdKey);
+            var relaunchCommand = GetWindowProperty(handle, RelaunchCommandKey);
+            var browserAppId = ExtractBrowserAppId(relaunchCommand);
+
+            return new WindowDescriptor(
+                handle,
+                processId,
+                processPath,
+                processName,
+                className,
+                title,
+                appUserModelId,
+                browserAppId);
+        }
+        catch
+        {
+            // A single protected or malformed foreign window must not crash the application.
             return null;
         }
-
-        NativeMethods.GetWindowThreadProcessId(handle, out var processId);
-        var title = GetWindowText(handle);
-        var className = GetClassName(handle);
-        var processPath = GetProcessPath(processId);
-        var processName = string.IsNullOrWhiteSpace(processPath)
-            ? TryGetProcessName(processId)
-            : Path.GetFileNameWithoutExtension(processPath);
-        var appUserModelId = GetWindowProperty(handle, AppUserModelIdKey);
-        var relaunchCommand = GetWindowProperty(handle, RelaunchCommandKey);
-        var browserAppId = ExtractBrowserAppId(relaunchCommand);
-
-        return new WindowDescriptor(
-            handle,
-            processId,
-            processPath,
-            processName,
-            className,
-            title,
-            appUserModelId,
-            browserAppId);
     }
 
     private static string GetWindowText(nint handle)
@@ -198,15 +206,16 @@ public sealed partial class Win32WindowService : IWindowService
 
     private static string? GetWindowProperty(nint handle, PropertyKey key)
     {
-        var interfaceId = typeof(IPropertyStore).GUID;
-        var result = NativeMethods.SHGetPropertyStoreForWindow(handle, ref interfaceId, out var propertyStore);
-        if (result < 0 || propertyStore is null)
-        {
-            return null;
-        }
-
+        IPropertyStore? propertyStore = null;
         try
         {
+            var interfaceId = typeof(IPropertyStore).GUID;
+            var result = NativeMethods.SHGetPropertyStoreForWindow(handle, ref interfaceId, out propertyStore);
+            if (result < 0 || propertyStore is null)
+            {
+                return null;
+            }
+
             var variant = new PropVariant();
             try
             {
@@ -218,9 +227,16 @@ public sealed partial class Win32WindowService : IWindowService
                 NativeMethods.PropVariantClear(ref variant);
             }
         }
+        catch
+        {
+            return null;
+        }
         finally
         {
-            Marshal.FinalReleaseComObject(propertyStore);
+            if (propertyStore is not null && Marshal.IsComObject(propertyStore))
+            {
+                Marshal.FinalReleaseComObject(propertyStore);
+            }
         }
     }
 
@@ -278,7 +294,9 @@ public sealed partial class Win32WindowService : IWindowService
         public uint PropertyId = propertyId;
     }
 
-    [StructLayout(LayoutKind.Explicit)]
+    // PROPVARIANT is 24 bytes on 64-bit Windows. An undersized declaration can
+    // overwrite managed memory when IPropertyStore.GetValue fills the value.
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
     private struct PropVariant
     {
         [FieldOffset(0)] private readonly ushort _variantType;
