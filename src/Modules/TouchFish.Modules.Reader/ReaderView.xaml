@@ -72,7 +72,7 @@
                     <StackPanel>
                         <TextBlock FontSize="16" FontWeight="SemiBold" Text="阅读设置" />
                         <TextBlock Margin="0,12,0,2" Foreground="{DynamicResource TextSecondaryBrush}" Text="书名" />
-                        <TextBox IsReadOnly="True" Text="{Binding SelectedBook.Title}" />
+                        <TextBox IsReadOnly="True" Text="{Binding SelectedBook.Title, Mode=OneWay}" />
 
                         <CheckBox Margin="0,16,0,0" Content="阅读窗口始终置顶"
                                   IsChecked="{Binding SelectedBook.ReaderWindowTopmost, Mode=TwoWay}" />
