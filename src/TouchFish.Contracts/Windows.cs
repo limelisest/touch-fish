@@ -31,8 +31,11 @@ public interface IWindowPickerService
 public interface IWindowService
 {
     WindowDescriptor? InspectAtScreenPoint(int x, int y);
+    WindowDescriptor? InspectWindow(nint windowHandle);
     IReadOnlyList<WindowDescriptor> EnumerateTopLevelWindows();
     nint GetForegroundWindowHandle();
+    nint GetWindowUnderCursorHandle();
+    bool IsWindowRelated(nint windowHandle, nint candidateHandle);
     byte[]? GetWindowIconPng(nint windowHandle);
     bool TryFocus(nint windowHandle);
     bool IsWindow(nint windowHandle);

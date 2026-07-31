@@ -174,7 +174,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         }
 
         _widget.EdgeSnapEnabled = book.FloatingWidgetEdgeSnapEnabled;
-        _widget.UpdateContent(book.Title, null);
+        _widget.UpdateContent("看书", null);
         _ = SaveBookAsync(book);
     }
 

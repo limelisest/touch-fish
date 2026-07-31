@@ -3,12 +3,12 @@ namespace TouchFish.Modules.BossKey;
 public static class AutoMinimizePolicy
 {
     public static bool ShouldMinimize(
-        DateTimeOffset? lostFocusAt,
+        DateTimeOffset? inactiveSince,
         int seconds,
         DateTimeOffset now)
     {
         return seconds >= 0 &&
-               lostFocusAt is not null &&
-               now - lostFocusAt.Value >= TimeSpan.FromSeconds(seconds);
+               inactiveSince is not null &&
+               now - inactiveSince.Value >= TimeSpan.FromSeconds(seconds);
     }
 }

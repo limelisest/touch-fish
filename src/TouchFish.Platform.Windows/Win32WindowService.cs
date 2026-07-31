@@ -13,6 +13,7 @@ namespace TouchFish.Platform.Windows;
 public sealed partial class Win32WindowService : IWindowService
 {
     private const uint GaRoot = 2;
+    private const uint GwOwner = 4;
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const int SwRestore = 9;
     private const int SwMinimize = 6;
@@ -46,6 +47,8 @@ public sealed partial class Win32WindowService : IWindowService
         return Inspect(handle);
     }
 
+    public WindowDescriptor? InspectWindow(nint windowHandle) => Inspect(windowHandle);
+
     public IReadOnlyList<WindowDescriptor> EnumerateTopLevelWindows()
     {
         var result = new List<WindowDescriptor>();
@@ -68,6 +71,56 @@ public sealed partial class Win32WindowService : IWindowService
     }
 
     public nint GetForegroundWindowHandle() => NativeMethods.GetForegroundWindow();
+
+    public nint GetWindowUnderCursorHandle()
+    {
+        if (!NativeMethods.GetCursorPos(out var point))
+        {
+            return nint.Zero;
+        }
+
+        var handle = NativeMethods.WindowFromPoint(new Point(point.X, point.Y));
+        return handle == nint.Zero ? nint.Zero : NativeMethods.GetAncestor(handle, GaRoot);
+    }
+
+    public bool IsWindowRelated(nint windowHandle, nint candidateHandle)
+    {
+        if (!NativeMethods.IsWindow(windowHandle) || !NativeMethods.IsWindow(candidateHandle))
+        {
+            return false;
+        }
+
+        var targetRoot = NativeMethods.GetAncestor(windowHandle, GaRoot);
+        var candidateRoot = NativeMethods.GetAncestor(candidateHandle, GaRoot);
+        if (targetRoot == candidateRoot || IsOwnedBy(candidateRoot, targetRoot) || IsOwnedBy(targetRoot, candidateRoot))
+        {
+            return true;
+        }
+
+        NativeMethods.GetWindowThreadProcessId(targetRoot, out var targetProcessId);
+        NativeMethods.GetWindowThreadProcessId(candidateRoot, out var candidateProcessId);
+        return targetProcessId != 0 && targetProcessId == candidateProcessId;
+    }
+
+    private static bool IsOwnedBy(nint windowHandle, nint potentialOwner)
+    {
+        var current = windowHandle;
+        for (var depth = 0; depth < 16; depth++)
+        {
+            current = NativeMethods.GetWindow(current, GwOwner);
+            if (current == nint.Zero)
+            {
+                return false;
+            }
+
+            if (NativeMethods.GetAncestor(current, GaRoot) == potentialOwner)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public byte[]? GetWindowIconPng(nint windowHandle)
     {
@@ -413,6 +466,13 @@ public sealed partial class Win32WindowService : IWindowService
     private readonly record struct Point(int X, int Y);
 
     [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     private readonly record struct Rect(int Left, int Top, int Right, int Bottom);
 
     [StructLayout(LayoutKind.Sequential)]
@@ -478,7 +538,14 @@ public sealed partial class Win32WindowService : IWindowService
         internal static extern nint WindowFromPoint(Point point);
 
         [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetCursorPos(out NativePoint point);
+
+        [DllImport("user32.dll")]
         internal static extern nint GetAncestor(nint windowHandle, uint flags);
+
+        [DllImport("user32.dll")]
+        internal static extern nint GetWindow(nint windowHandle, uint command);
 
         [DllImport("user32.dll")]
         internal static extern nint GetForegroundWindow();

@@ -6,7 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>TouchFish.App</RootNamespace>
     <AssemblyName>TouchFish</AssemblyName>
-    <Version>0.10.1</Version>
+    <Version>0.10.2</Version>
     <Product>TouchFish</Product>
     <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>

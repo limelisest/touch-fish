@@ -20,6 +20,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private readonly Dictionary<nint, AutoMinimizeState> _autoMinimizeStates = [];
     private readonly DispatcherTimer _autoMinimizeTimer;
     private DateTimeOffset _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
+    private nint _lastHoveredWindowHandle;
+    private WindowDescriptor? _lastHoveredWindow;
     private HotkeyGesture _hotkey = new(0x4D, HotkeyModifiers.Control | HotkeyModifiers.Alt, "M");
     private bool _hotkeyAttached;
 
@@ -255,8 +257,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
         await SaveSettingsAsync();
         StatusText = enabled
-            ? $"已把失焦自动最小化同步为启用，倒计时 {seconds} 秒。"
-            : "已关闭所有窗口的失焦自动最小化。";
+            ? $"已把光标移开自动最小化同步为启用，倒计时 {seconds} 秒。"
+            : "已关闭所有窗口的光标移开自动最小化。";
     }
 
     [RelayCommand]
@@ -310,11 +312,14 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             RefreshAutoMinimizeTargets(now);
         }
 
-        var foregroundWindow = _windowService.GetForegroundWindowHandle();
-        if (foregroundWindow == nint.Zero)
+        var windowUnderCursor = _windowService.GetWindowUnderCursorHandle();
+        if (windowUnderCursor != _lastHoveredWindowHandle)
         {
-            return;
+            _lastHoveredWindowHandle = windowUnderCursor;
+            _lastHoveredWindow = windowUnderCursor == nint.Zero ? null : _windowService.InspectWindow(windowUnderCursor);
         }
+
+        var hoveredWindow = _lastHoveredWindow;
 
         foreach (var (handle, state) in _autoMinimizeStates.ToArray())
         {
@@ -330,7 +335,9 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 continue;
             }
 
-            if (handle == foregroundWindow)
+            if (windowUnderCursor != nint.Zero &&
+                (_windowService.IsWindowRelated(handle, windowUnderCursor) ||
+                 BelongsToRuleProcess(state.Rule, hoveredWindow)))
             {
                 state.LostFocusAt = null;
                 continue;
@@ -345,11 +352,27 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             if (_windowService.Minimize(handle))
             {
                 state.Rule.CurrentState = "已自动最小化";
-                StatusText = $"“{state.Rule.Name}”失去焦点 {state.Seconds} 秒，已自动最小化。";
+                StatusText = $"光标离开“{state.Rule.Name}”及其衍生窗口 {state.Seconds} 秒，已自动最小化。";
             }
 
             state.LostFocusAt = null;
         }
+    }
+
+    private static bool BelongsToRuleProcess(WindowRuleItemViewModel rule, WindowDescriptor? window)
+    {
+        if (window is null)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(rule.ProcessPath) && !string.IsNullOrWhiteSpace(window.ProcessPath))
+        {
+            return string.Equals(rule.ProcessPath, window.ProcessPath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return !string.IsNullOrWhiteSpace(rule.ProcessName) &&
+               string.Equals(rule.ProcessName, window.ProcessName, StringComparison.OrdinalIgnoreCase);
     }
 
     private void RefreshAutoMinimizeTargets(DateTimeOffset now)

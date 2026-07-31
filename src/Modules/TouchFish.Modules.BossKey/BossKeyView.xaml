@@ -156,7 +156,7 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="失焦自动最小化"
+                                <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="光标移开自动最小化"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />
                                 <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,3" Orientation="Horizontal">
                                     <CheckBox Margin="0,0,12,0" VerticalAlignment="Center" Content="启用"
