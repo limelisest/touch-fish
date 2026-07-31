@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -9,6 +10,7 @@ public sealed class ReaderLibraryService
     private const string MetadataFileName = "metadata.json";
     private readonly ReaderChapterParser _chapterParser;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly ConcurrentDictionary<Guid, Task<string>> _textCache = new();
     private readonly string _libraryRoot;
 
     public ReaderLibraryService(ReaderChapterParser chapterParser)
@@ -81,11 +83,13 @@ public sealed class ReaderLibraryService
         try
         {
             await File.WriteAllTextAsync(Path.Combine(directory, book.FileName), text, new UTF8Encoding(false), cancellationToken);
+            _textCache[book.Id] = Task.FromResult(text);
             await SaveAsync(book, cancellationToken);
             return book;
         }
         catch
         {
+            _textCache.TryRemove(book.Id, out _);
             if (Directory.Exists(directory))
             {
                 Directory.Delete(directory, true);
@@ -95,9 +99,20 @@ public sealed class ReaderLibraryService
         }
     }
 
+    public async Task WarmBookAsync(ReaderBook book)
+    {
+        foreach (var cachedBookId in _textCache.Keys.Where(id => id != book.Id))
+        {
+            _textCache.TryRemove(cachedBookId, out _);
+        }
+
+        _ = await GetBookTextAsync(book);
+    }
+
     public async Task<string> ReadChapterAsync(ReaderBook book, int chapterIndex, CancellationToken cancellationToken = default)
     {
-        var text = await File.ReadAllTextAsync(GetBookTextPath(book), Encoding.UTF8, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var text = await GetBookTextAsync(book);
         if (book.Chapters.Count == 0)
         {
             return text;
@@ -135,6 +150,7 @@ public sealed class ReaderLibraryService
 
     public Task DeleteAsync(ReaderBook book)
     {
+        _textCache.TryRemove(book.Id, out _);
         var directory = GetBookDirectory(book.Id);
         if (Directory.Exists(directory))
         {
@@ -160,6 +176,26 @@ public sealed class ReaderLibraryService
                     // A locked incomplete import can be retried on the next launch.
                 }
             }
+        }
+    }
+
+    private async Task<string> GetBookTextAsync(ReaderBook book)
+    {
+        var task = _textCache.GetOrAdd(
+            book.Id,
+            _ => File.ReadAllTextAsync(GetBookTextPath(book), Encoding.UTF8));
+        try
+        {
+            return await task;
+        }
+        catch
+        {
+            if (_textCache.TryGetValue(book.Id, out var cachedTask) && ReferenceEquals(cachedTask, task))
+            {
+                _textCache.TryRemove(book.Id, out _);
+            }
+
+            throw;
         }
     }
 

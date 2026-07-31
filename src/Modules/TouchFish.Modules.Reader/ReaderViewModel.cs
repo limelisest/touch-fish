@@ -72,6 +72,22 @@ public partial class ReaderViewModel(
         }
 
         windowManager.SetActiveBook(newValue);
+        if (newValue is not null)
+        {
+            _ = WarmBookAsync(newValue.Model);
+        }
+    }
+
+    private async Task WarmBookAsync(ReaderBook book)
+    {
+        try
+        {
+            await library.WarmBookAsync(book);
+        }
+        catch
+        {
+            // Opening the reader will surface or retry a transient file access failure.
+        }
     }
 
     partial void OnSelectedChapterChanged(ReaderChapter? value)
@@ -86,6 +102,7 @@ public partial class ReaderViewModel(
         {
             SelectedBook.Model.CurrentChapterIndex = index;
             SelectedBook.Model.CurrentCharacterOffset = 0;
+            SelectedBook.Model.CurrentScrollProgress = 0;
             _ = SaveBookAsync(SelectedBook);
         }
     }
@@ -138,8 +155,15 @@ public partial class ReaderViewModel(
         }
 
         var index = SelectedChapter is null ? SelectedBook.Model.CurrentChapterIndex : Chapters.IndexOf(SelectedChapter);
-        await windowManager.OpenAsync(SelectedBook, Math.Max(0, index));
-        StatusText = $"正在阅读《{SelectedBook.Title}》。";
+        try
+        {
+            await windowManager.OpenAsync(SelectedBook, Math.Max(0, index));
+            StatusText = $"正在阅读《{SelectedBook.Title}》。";
+        }
+        catch (Exception exception)
+        {
+            StatusText = $"阅读窗口打开失败：{exception.Message}";
+        }
     }
 
     [RelayCommand]

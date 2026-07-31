@@ -4,7 +4,7 @@ namespace TouchFish.Modules.Reader;
 
 public sealed class ReaderBook
 {
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Title { get; set; } = string.Empty;
     public string FileName { get; set; } = "book.txt";
@@ -12,6 +12,7 @@ public sealed class ReaderBook
     public List<ReaderChapter> Chapters { get; set; } = [];
     public int CurrentChapterIndex { get; set; }
     public int CurrentCharacterOffset { get; set; }
+    public double CurrentScrollProgress { get; set; }
     public double? ReaderWindowLeft { get; set; }
     public double? ReaderWindowTop { get; set; }
     public double ReaderWindowWidth { get; set; } = 560;
