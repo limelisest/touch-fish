@@ -13,7 +13,7 @@ public partial class BossKeyViewModel : ObservableObject
     private readonly IWindowPickerService _windowPickerService;
     private readonly IBossKeySettingsStore _settingsStore;
     private readonly WindowRuleMatcher _matcher;
-    private readonly List<WindowPlacementSnapshot> _placements = [];
+    private readonly List<RestoreEntry> _placements = [];
     private HotkeyGesture _hotkey = new(0x4D, HotkeyModifiers.Control | HotkeyModifiers.Alt, "M");
     private bool _hotkeyAttached;
     private bool _windowsMinimized;
@@ -166,6 +166,48 @@ public partial class BossKeyViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task MoveSelectedUpAsync()
+    {
+        if (SelectedWindow is null)
+        {
+            StatusText = "请先选择一条窗口规则。";
+            return;
+        }
+
+        var index = Windows.IndexOf(SelectedWindow);
+        if (index <= 0)
+        {
+            StatusText = "该窗口已经在最上面。";
+            return;
+        }
+
+        Windows.Move(index, index - 1);
+        await SaveSettingsAsync();
+        StatusText = $"已上移“{SelectedWindow.Name}”；它会更晚恢复并显示在更上层。";
+    }
+
+    [RelayCommand]
+    private async Task MoveSelectedDownAsync()
+    {
+        if (SelectedWindow is null)
+        {
+            StatusText = "请先选择一条窗口规则。";
+            return;
+        }
+
+        var index = Windows.IndexOf(SelectedWindow);
+        if (index < 0 || index >= Windows.Count - 1)
+        {
+            StatusText = "该窗口已经在最下面。";
+            return;
+        }
+
+        Windows.Move(index, index + 1);
+        await SaveSettingsAsync();
+        StatusText = $"已下移“{SelectedWindow.Name}”；它会更早恢复并显示在更下层。";
+    }
+
+    [RelayCommand]
     private void LocateSelected()
     {
         if (SelectedWindow is null)
@@ -224,33 +266,56 @@ public partial class BossKeyViewModel : ObservableObject
     {
         if (_windowsMinimized)
         {
-            var restored = _placements.Count(_windowService.Restore);
+            var restored = 0;
+            nint foregroundWindow = nint.Zero;
+
+            // Restore from the bottom of the list to the top. The first item is
+            // therefore restored last and receives focus, matching its visual priority.
+            foreach (var entry in _placements.OrderByDescending(entry => entry.Priority))
+            {
+                if (_windowService.Restore(entry.Placement))
+                {
+                    restored++;
+                    foregroundWindow = entry.Placement.Handle;
+                }
+            }
+
+            if (foregroundWindow != nint.Zero)
+            {
+                _windowService.TryFocus(foregroundWindow);
+            }
+
             _placements.Clear();
             _windowsMinimized = false;
-            StatusText = $"已恢复 {restored} 个窗口。";
+            StatusText = $"已按列表层级恢复 {restored} 个窗口。";
             RefreshWindowStates();
             return;
         }
 
         var currentWindows = _windowService.EnumerateTopLevelWindows();
         var targets = Windows
-            .SelectMany(item => _matcher.FindMatches(item.ToModel(), currentWindows))
-            .Where(window => window.ProcessId != Environment.ProcessId)
-            .DistinctBy(window => window.Handle)
+            .Select((item, priority) => new { Item = item, Priority = priority })
+            .SelectMany(
+                entry => _matcher.FindMatches(entry.Item.ToModel(), currentWindows),
+                (entry, window) => new TargetWindow(window, entry.Priority))
+            .Where(target => target.Window.ProcessId != Environment.ProcessId)
+            .GroupBy(target => target.Window.Handle)
+            .Select(group => group.OrderBy(target => target.Priority).First())
+            .OrderBy(target => target.Priority)
             .ToArray();
 
         _placements.Clear();
         foreach (var target in targets)
         {
-            if (_windowService.IsMinimized(target.Handle))
+            if (_windowService.IsMinimized(target.Window.Handle))
             {
                 continue;
             }
 
-            var placement = _windowService.CapturePlacement(target.Handle);
-            if (placement is not null && _windowService.Minimize(target.Handle))
+            var placement = _windowService.CapturePlacement(target.Window.Handle);
+            if (placement is not null && _windowService.Minimize(target.Window.Handle))
             {
-                _placements.Add(placement);
+                _placements.Add(new RestoreEntry(placement, target.Priority));
             }
         }
 
@@ -266,4 +331,8 @@ public partial class BossKeyViewModel : ObservableObject
         Hotkey = _hotkey,
         Windows = Windows.Select(item => item.ToModel()).ToList()
     });
+
+    private sealed record TargetWindow(WindowDescriptor Window, int Priority);
+
+    private sealed record RestoreEntry(WindowPlacementSnapshot Placement, int Priority);
 }

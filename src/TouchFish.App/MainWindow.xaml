@@ -4,7 +4,7 @@
         xmlns:bossKey="clr-namespace:TouchFish.Modules.BossKey;assembly=TouchFish.Modules.BossKey"
         Title="TouchFish"
         Icon="/Assets/app-icon.ico"
-        Background="{DynamicResource AppBackgroundBrush}"
+        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
         Width="980"
         Height="720"
         MinWidth="820"
