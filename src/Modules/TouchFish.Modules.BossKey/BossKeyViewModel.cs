@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows.Threading;
@@ -14,6 +15,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private readonly IWindowPickerService _windowPickerService;
     private readonly IBossKeySettingsStore _settingsStore;
     private readonly WindowRuleMatcher _matcher;
+    private readonly FloatingWidgetManager _floatingWidgetManager;
     private readonly Dictionary<nint, AutoMinimizeState> _autoMinimizeStates = [];
     private readonly DispatcherTimer _autoMinimizeTimer;
     private DateTimeOffset _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
@@ -25,13 +27,15 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         IHotkeyService hotkeyService,
         IWindowPickerService windowPickerService,
         IBossKeySettingsStore settingsStore,
-        WindowRuleMatcher matcher)
+        WindowRuleMatcher matcher,
+        FloatingWidgetManager floatingWidgetManager)
     {
         _windowService = windowService;
         _hotkeyService = hotkeyService;
         _windowPickerService = windowPickerService;
         _settingsStore = settingsStore;
         _matcher = matcher;
+        _floatingWidgetManager = floatingWidgetManager;
 
         _autoMinimizeTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
@@ -56,8 +60,12 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         Windows.Clear();
         foreach (var rule in settings.Windows)
         {
-            Windows.Add(WindowRuleItemViewModel.FromModel(rule));
+            var item = WindowRuleItemViewModel.FromModel(rule);
+            AttachWindowRule(item);
+            Windows.Add(item);
         }
+
+        SyncFloatingWidgets();
 
         // Do not inspect every foreign window during startup. Some protected
         // windows reject shell property access; matching runs on demand instead.
@@ -143,9 +151,11 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             CurrentState = "运行中"
         };
 
+        AttachWindowRule(item);
         Windows.Add(item);
         SelectedWindow = item;
         await SaveSettingsAsync();
+        SyncFloatingWidgets();
         StatusText = string.IsNullOrWhiteSpace(window.BrowserAppId)
             ? "窗口已添加。若标题会变化，请把“标题包含”修改为稳定关键词。"
             : $"窗口已添加，并检测到浏览器 Web App 标识：{window.BrowserAppId}";
@@ -155,6 +165,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private async Task SaveAsync()
     {
         await SaveSettingsAsync();
+        SyncFloatingWidgets();
         RefreshWindowStates();
         StatusText = "配置已保存。";
     }
@@ -169,9 +180,11 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         }
 
         var name = SelectedWindow.Name;
+        DetachWindowRule(SelectedWindow);
         Windows.Remove(SelectedWindow);
         SelectedWindow = null;
         await SaveSettingsAsync();
+        SyncFloatingWidgets();
         StatusText = $"已删除“{name}”。";
     }
 
@@ -367,6 +380,46 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void AttachWindowRule(WindowRuleItemViewModel rule)
+    {
+        rule.PropertyChanged += OnWindowRulePropertyChanged;
+    }
+
+    private void DetachWindowRule(WindowRuleItemViewModel rule)
+    {
+        rule.PropertyChanged -= OnWindowRulePropertyChanged;
+    }
+
+    private void OnWindowRulePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is not (
+            nameof(WindowRuleItemViewModel.FloatingWidgetEnabled) or
+            nameof(WindowRuleItemViewModel.FloatingWidgetTriggerMode)))
+        {
+            return;
+        }
+
+        SyncFloatingWidgets();
+        _ = SaveFloatingSettingsAsync();
+    }
+
+    private async Task SaveFloatingSettingsAsync()
+    {
+        try
+        {
+            await SaveSettingsAsync();
+        }
+        catch (Exception exception)
+        {
+            StatusText = $"悬浮窗配置保存失败：{exception.Message}";
+        }
+    }
+
+    private void SyncFloatingWidgets()
+    {
+        _floatingWidgetManager.Sync(Windows, SaveSettingsAsync);
+    }
+
     private void RegisterCurrentHotkey()
     {
         if (_hotkeyService.TryRegister(HotkeyOwner, _hotkey, ToggleWindows, out var error))
@@ -450,6 +503,11 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        foreach (var rule in Windows)
+        {
+            DetachWindowRule(rule);
+        }
+
         _autoMinimizeTimer.Stop();
         _autoMinimizeTimer.Tick -= OnAutoMinimizeTick;
     }

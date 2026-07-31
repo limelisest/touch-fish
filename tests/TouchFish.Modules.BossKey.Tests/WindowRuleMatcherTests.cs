@@ -17,6 +17,15 @@ public sealed class WindowRuleMatcherTests
     }
 
     [Fact]
+    public void NewWindowRule_DefaultsFloatingWidgetToDisabledClickMode()
+    {
+        var rule = new WindowRule();
+
+        Assert.False(rule.FloatingWidgetEnabled);
+        Assert.Equal(FloatingWidgetTriggerMode.Click, rule.FloatingWidgetTriggerMode);
+    }
+
+    [Fact]
     public void BrowserAppId_IsStableWhenTitleChanges()
     {
         var rule = Rule(browserAppId: "telegram-app-id", title: string.Empty);

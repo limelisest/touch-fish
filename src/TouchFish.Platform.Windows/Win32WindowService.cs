@@ -3,6 +3,9 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media.Imaging;
 using TouchFish.Contracts;
 
 namespace TouchFish.Platform.Windows;
@@ -13,6 +16,10 @@ public sealed partial class Win32WindowService : IWindowService
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const int SwRestore = 9;
     private const int SwMinimize = 6;
+    private const uint WmGetIcon = 0x007F;
+    private const int GclpIcon = -14;
+    private const int GclpIconSmall = -34;
+    private const uint SmtoAbortIfHung = 0x0002;
 
     private static readonly PropertyKey AppUserModelIdKey = new(
         new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), 5);
@@ -54,6 +61,61 @@ public sealed partial class Win32WindowService : IWindowService
     }
 
     public nint GetForegroundWindowHandle() => NativeMethods.GetForegroundWindow();
+
+    public byte[]? GetWindowIconPng(nint windowHandle)
+    {
+        try
+        {
+            nint iconHandle = nint.Zero;
+            foreach (var iconType in new nuint[] { 2, 0, 1 })
+            {
+                NativeMethods.SendMessageTimeout(
+                    windowHandle,
+                    WmGetIcon,
+                    iconType,
+                    nint.Zero,
+                    SmtoAbortIfHung,
+                    100,
+                    out var result);
+                if (result != 0)
+                {
+                    iconHandle = (nint)result;
+                    break;
+                }
+            }
+
+            if (iconHandle == nint.Zero)
+            {
+                iconHandle = NativeMethods.GetClassLongPtr(windowHandle, GclpIconSmall);
+            }
+
+            if (iconHandle == nint.Zero)
+            {
+                iconHandle = NativeMethods.GetClassLongPtr(windowHandle, GclpIcon);
+            }
+
+            if (iconHandle == nint.Zero)
+            {
+                return null;
+            }
+
+            var source = Imaging.CreateBitmapSourceFromHIcon(
+                iconHandle,
+                Int32Rect.Empty,
+                BitmapSizeOptions.FromWidthAndHeight(24, 24));
+            source.Freeze();
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(source));
+            using var stream = new MemoryStream();
+            encoder.Save(stream);
+            return stream.ToArray();
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     public bool TryFocus(nint windowHandle)
     {
@@ -343,6 +405,19 @@ public sealed partial class Win32WindowService : IWindowService
 
         [DllImport("user32.dll")]
         internal static extern nint GetForegroundWindow();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern nint SendMessageTimeout(
+            nint windowHandle,
+            uint message,
+            nuint wParam,
+            nint lParam,
+            uint flags,
+            uint timeout,
+            out nuint result);
+
+        [DllImport("user32.dll", EntryPoint = "GetClassLongPtrW", SetLastError = true)]
+        internal static extern nint GetClassLongPtr(nint windowHandle, int index);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]

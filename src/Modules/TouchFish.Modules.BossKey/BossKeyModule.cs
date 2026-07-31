@@ -19,6 +19,7 @@ public static class BossKeyModuleServiceCollectionExtensions
         services.AddSingleton<ITouchFishModule, BossKeyModule>();
         services.AddSingleton<WindowRuleMatcher>();
         services.AddSingleton<IBossKeySettingsStore, BossKeySettingsStore>();
+        services.AddSingleton<FloatingWidgetManager>();
         services.AddSingleton<BossKeyViewModel>();
         return services;
     }

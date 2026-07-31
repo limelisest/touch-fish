@@ -19,7 +19,7 @@ public sealed class BossKeySettingsMigrationTests
 
         BossKeySettingsMigration.Migrate(settings);
 
-        Assert.Equal(3, settings.SchemaVersion);
+        Assert.Equal(4, settings.SchemaVersion);
         Assert.Equal(120, settings.Windows[0].AutoMinimizeSeconds);
         Assert.Null(settings.Windows[0].LegacyAutoMinimizeMinutes);
     }
