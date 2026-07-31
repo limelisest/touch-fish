@@ -16,11 +16,17 @@ public sealed class AutoMinimizePolicyTests
     }
 
     [Fact]
-    public void DoesNotMinimizeBeforeDelayOrWhenDisabled()
+    public void ZeroSecondsTriggersImmediatelyAfterFocusIsLost()
+    {
+        Assert.True(AutoMinimizePolicy.ShouldMinimize(Now, 0, Now));
+    }
+
+    [Fact]
+    public void DoesNotMinimizeBeforeDelayOrWithoutLostFocusTimestamp()
     {
         var lostFocusAt = Now.AddSeconds(-9);
 
         Assert.False(AutoMinimizePolicy.ShouldMinimize(lostFocusAt, 10, Now));
-        Assert.False(AutoMinimizePolicy.ShouldMinimize(Now.AddHours(-1), 0, Now));
+        Assert.False(AutoMinimizePolicy.ShouldMinimize(null, 0, Now));
     }
 }

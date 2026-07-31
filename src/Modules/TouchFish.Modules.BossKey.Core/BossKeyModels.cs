@@ -11,7 +11,7 @@ public enum FloatingWidgetTriggerMode
 
 public sealed class BossKeySettings
 {
-    public int SchemaVersion { get; set; } = 4;
+    public int SchemaVersion { get; set; } = 5;
     public HotkeyGesture Hotkey { get; set; } = new(0x4D, HotkeyModifiers.Control | HotkeyModifiers.Alt, "M");
     public List<WindowRule> Windows { get; set; } = [];
 }
@@ -26,11 +26,13 @@ public sealed class WindowRule
     public string TitleContains { get; set; } = string.Empty;
     public string? AppUserModelId { get; set; }
     public string? BrowserAppId { get; set; }
+    public bool AutoMinimizeEnabled { get; set; } = true;
     public int AutoMinimizeSeconds { get; set; } = 60;
     public bool FloatingWidgetEnabled { get; set; }
     public FloatingWidgetTriggerMode FloatingWidgetTriggerMode { get; set; } = FloatingWidgetTriggerMode.Click;
     public double? FloatingWidgetLeft { get; set; }
     public double? FloatingWidgetTop { get; set; }
+    public bool FloatingWidgetEdgeSnapEnabled { get; set; } = true;
 
     [JsonPropertyName("autoMinimizeMinutes")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

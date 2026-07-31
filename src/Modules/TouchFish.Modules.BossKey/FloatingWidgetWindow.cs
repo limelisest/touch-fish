@@ -1,21 +1,24 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace TouchFish.Modules.BossKey;
 
 internal sealed class FloatingWidgetWindow : Window
 {
+    private const uint MonitorDefaultToNearest = 2;
     private readonly Image _icon;
     private readonly TextBlock _title;
-    private Point _dragStart;
-    private double _windowStartLeft;
-    private double _windowStartTop;
+    private readonly DispatcherTimer _hoverTimer;
+    private NativePoint _dragStartCursor;
+    private NativePoint _lastCursor;
     private bool _dragging;
-    private DateTimeOffset _lastHoverActivation = DateTimeOffset.MinValue;
 
     public FloatingWidgetWindow()
     {
@@ -69,13 +72,22 @@ internal sealed class FloatingWidgetWindow : Window
         border.SetResourceReference(Border.BorderBrushProperty, "BorderBrush");
         Content = border;
 
+        _hoverTimer = new DispatcherTimer(DispatcherPriority.Input)
+        {
+            Interval = TimeSpan.FromMilliseconds(300)
+        };
+        _hoverTimer.Tick += OnHoverTimerTick;
+
         PreviewMouseLeftButtonDown += OnMouseLeftButtonDown;
         PreviewMouseMove += OnMouseMove;
         PreviewMouseLeftButtonUp += OnMouseLeftButtonUp;
         MouseEnter += OnMouseEnter;
+        MouseLeave += OnMouseLeave;
+        Closed += (_, _) => _hoverTimer.Stop();
     }
 
     public FloatingWidgetTriggerMode TriggerMode { get; set; }
+    public bool EdgeSnapEnabled { get; set; } = true;
 
     public event Action? ActivationRequested;
     public event Action<double, double>? PositionChanged;
@@ -113,9 +125,12 @@ internal sealed class FloatingWidgetWindow : Window
 
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        _dragStart = PointToScreen(e.GetPosition(this));
-        _windowStartLeft = Left;
-        _windowStartTop = Top;
+        if (!NativeMethods.GetCursorPos(out _dragStartCursor))
+        {
+            return;
+        }
+
+        _lastCursor = _dragStartCursor;
         _dragging = false;
         CaptureMouse();
         e.Handled = true;
@@ -123,21 +138,27 @@ internal sealed class FloatingWidgetWindow : Window
 
     private void OnMouseMove(object sender, MouseEventArgs e)
     {
-        if (Mouse.Captured != this || e.LeftButton != MouseButtonState.Pressed)
+        if (Mouse.Captured != this || e.LeftButton != MouseButtonState.Pressed ||
+            !NativeMethods.GetCursorPos(out var currentCursor))
         {
             return;
         }
 
-        var current = PointToScreen(e.GetPosition(this));
-        var deltaX = current.X - _dragStart.X;
-        var deltaY = current.Y - _dragStart.Y;
-        if (!_dragging && Math.Abs(deltaX) < 4 && Math.Abs(deltaY) < 4)
+        if (!_dragging)
         {
-            return;
+            var totalX = currentCursor.X - _dragStartCursor.X;
+            var totalY = currentCursor.Y - _dragStartCursor.Y;
+            if (Math.Abs(totalX) < 4 && Math.Abs(totalY) < 4)
+            {
+                return;
+            }
+
+            _dragging = true;
         }
 
-        _dragging = true;
-        SetInitialPosition(_windowStartLeft + deltaX, _windowStartTop + deltaY);
+        var delta = PixelsToDips(currentCursor.X - _lastCursor.X, currentCursor.Y - _lastCursor.Y);
+        SetInitialPosition(Left + delta.X, Top + delta.Y);
+        _lastCursor = currentCursor;
         e.Handled = true;
     }
 
@@ -150,6 +171,11 @@ internal sealed class FloatingWidgetWindow : Window
 
         if (_dragging)
         {
+            if (EdgeSnapEnabled)
+            {
+                SnapToMonitorEdge();
+            }
+
             PositionChanged?.Invoke(Left, Top);
         }
         else if (TriggerMode == FloatingWidgetTriggerMode.Click)
@@ -168,14 +194,84 @@ internal sealed class FloatingWidgetWindow : Window
             return;
         }
 
-        var now = DateTimeOffset.UtcNow;
-        if (now - _lastHoverActivation < TimeSpan.FromMilliseconds(500))
+        _hoverTimer.Stop();
+        _hoverTimer.Start();
+    }
+
+    private void OnMouseLeave(object sender, MouseEventArgs e)
+    {
+        _hoverTimer.Stop();
+    }
+
+    private void OnHoverTimerTick(object? sender, EventArgs e)
+    {
+        _hoverTimer.Stop();
+        if (TriggerMode == FloatingWidgetTriggerMode.PointerHover && IsMouseOver)
+        {
+            ActivationRequested?.Invoke();
+        }
+    }
+
+    private void SnapToMonitorEdge()
+    {
+        var windowHandle = new WindowInteropHelper(this).Handle;
+        if (windowHandle == nint.Zero || !NativeMethods.GetWindowRect(windowHandle, out var windowRect))
         {
             return;
         }
 
-        _lastHoverActivation = now;
-        ActivationRequested?.Invoke();
+        var monitor = NativeMethods.MonitorFromWindow(windowHandle, MonitorDefaultToNearest);
+        var monitorInfo = MonitorInfo.Create();
+        if (monitor == nint.Zero || !NativeMethods.GetMonitorInfo(monitor, ref monitorInfo))
+        {
+            return;
+        }
+
+        var workOriginDelta = PixelsToDips(
+            monitorInfo.WorkArea.Left - windowRect.Left,
+            monitorInfo.WorkArea.Top - windowRect.Top);
+        var workSize = PixelsToDips(
+            monitorInfo.WorkArea.Right - monitorInfo.WorkArea.Left,
+            monitorInfo.WorkArea.Bottom - monitorInfo.WorkArea.Top);
+        var workLeft = Left + workOriginDelta.X;
+        var workTop = Top + workOriginDelta.Y;
+        var workRight = workLeft + workSize.X;
+        var workBottom = workTop + workSize.Y;
+        const double snapDistance = 16;
+
+        var snappedLeft = Left;
+        var snappedTop = Top;
+        if (Math.Abs(Left - workLeft) <= snapDistance)
+        {
+            snappedLeft = workLeft;
+        }
+        else if (Math.Abs(workRight - (Left + Width)) <= snapDistance)
+        {
+            snappedLeft = workRight - Width;
+        }
+
+        if (Math.Abs(Top - workTop) <= snapDistance)
+        {
+            snappedTop = workTop;
+        }
+        else if (Math.Abs(workBottom - (Top + Height)) <= snapDistance)
+        {
+            snappedTop = workBottom - Height;
+        }
+
+        SetInitialPosition(snappedLeft, snappedTop);
+    }
+
+    private Vector PixelsToDips(double x, double y)
+    {
+        var source = PresentationSource.FromVisual(this);
+        if (source?.CompositionTarget is null)
+        {
+            return new Vector(x, y);
+        }
+
+        var converted = source.CompositionTarget.TransformFromDevice.Transform(new Point(x, y));
+        return new Vector(converted.X, converted.Y);
     }
 
     private static ImageSource? LoadFallbackIcon()
@@ -192,4 +288,52 @@ internal sealed class FloatingWidgetWindow : Window
 
     private static double Clamp(double value, double minimum, double maximum) =>
         maximum <= minimum ? minimum : Math.Clamp(value, minimum, maximum);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MonitorInfo
+    {
+        public int Size;
+        public NativeRect MonitorArea;
+        public NativeRect WorkArea;
+        public uint Flags;
+
+        public static MonitorInfo Create() => new()
+        {
+            Size = Marshal.SizeOf<MonitorInfo>()
+        };
+    }
+
+    private static class NativeMethods
+    {
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetCursorPos(out NativePoint point);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetWindowRect(nint windowHandle, out NativeRect rectangle);
+
+        [DllImport("user32.dll")]
+        internal static extern nint MonitorFromWindow(nint windowHandle, uint flags);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetMonitorInfo(nint monitor, ref MonitorInfo monitorInfo);
+    }
 }

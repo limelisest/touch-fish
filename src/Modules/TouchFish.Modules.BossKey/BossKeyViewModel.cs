@@ -39,7 +39,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
         _autoMinimizeTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
-            Interval = TimeSpan.FromSeconds(1)
+            Interval = TimeSpan.FromMilliseconds(100)
         };
         _autoMinimizeTimer.Tick += OnAutoMinimizeTick;
     }
@@ -147,6 +147,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             TitleContains = string.IsNullOrWhiteSpace(window.BrowserAppId) ? window.Title : string.Empty,
             AppUserModelId = window.AppUserModelId,
             BrowserAppId = window.BrowserAppId,
+            AutoMinimizeEnabled = true,
             AutoMinimizeSeconds = 60,
             CurrentState = "运行中"
         };
@@ -239,18 +240,20 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             return;
         }
 
+        var enabled = SelectedWindow.AutoMinimizeEnabled;
         var seconds = Math.Clamp(SelectedWindow.AutoMinimizeSeconds, 0, 86400);
         SelectedWindow.AutoMinimizeSeconds = seconds;
         foreach (var window in Windows)
         {
+            window.AutoMinimizeEnabled = enabled;
             window.AutoMinimizeSeconds = seconds;
         }
 
         _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
         await SaveSettingsAsync();
-        StatusText = seconds == 0
-            ? "已关闭所有窗口的失焦自动最小化。"
-            : $"已把自动最小化时间同步为 {seconds} 秒。";
+        StatusText = enabled
+            ? $"已把失焦自动最小化同步为启用，倒计时 {seconds} 秒。"
+            : "已关闭所有窗口的失焦自动最小化。";
     }
 
     [RelayCommand]
@@ -352,9 +355,9 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         var currentWindows = _windowService.EnumerateTopLevelWindows();
         var activeHandles = new HashSet<nint>();
 
-        foreach (var rule in Windows.Where(rule => rule.AutoMinimizeSeconds > 0))
+        foreach (var rule in Windows.Where(rule => rule.AutoMinimizeEnabled))
         {
-            var seconds = Math.Clamp(rule.AutoMinimizeSeconds, 1, 86400);
+            var seconds = Math.Clamp(rule.AutoMinimizeSeconds, 0, 86400);
             foreach (var window in _matcher.FindMatches(rule.ToModel(), currentWindows))
             {
                 if (!activeHandles.Add(window.Handle))
@@ -392,9 +395,18 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
     private void OnWindowRulePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is
+            nameof(WindowRuleItemViewModel.AutoMinimizeEnabled) or
+            nameof(WindowRuleItemViewModel.AutoMinimizeSeconds))
+        {
+            _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
+            return;
+        }
+
         if (e.PropertyName is not (
             nameof(WindowRuleItemViewModel.FloatingWidgetEnabled) or
-            nameof(WindowRuleItemViewModel.FloatingWidgetTriggerMode)))
+            nameof(WindowRuleItemViewModel.FloatingWidgetTriggerMode) or
+            nameof(WindowRuleItemViewModel.FloatingWidgetEdgeSnapEnabled)))
         {
             return;
         }

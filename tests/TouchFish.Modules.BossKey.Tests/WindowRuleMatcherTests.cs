@@ -13,6 +13,7 @@ public sealed class WindowRuleMatcherTests
     {
         var rule = new WindowRule();
 
+        Assert.True(rule.AutoMinimizeEnabled);
         Assert.Equal(60, rule.AutoMinimizeSeconds);
     }
 
@@ -23,6 +24,7 @@ public sealed class WindowRuleMatcherTests
 
         Assert.False(rule.FloatingWidgetEnabled);
         Assert.Equal(FloatingWidgetTriggerMode.Click, rule.FloatingWidgetTriggerMode);
+        Assert.True(rule.FloatingWidgetEdgeSnapEnabled);
     }
 
     [Fact]

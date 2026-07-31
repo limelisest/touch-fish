@@ -49,6 +49,7 @@ public sealed class FloatingWidgetManager : IDisposable
             }
 
             widget.TriggerMode = rule.FloatingWidgetTriggerMode;
+            widget.EdgeSnapEnabled = rule.FloatingWidgetEdgeSnapEnabled;
             widget.UpdateContent(DisplayName(rule), null);
         }
 
@@ -59,7 +60,8 @@ public sealed class FloatingWidgetManager : IDisposable
     {
         var widget = new FloatingWidgetWindow
         {
-            TriggerMode = rule.FloatingWidgetTriggerMode
+            TriggerMode = rule.FloatingWidgetTriggerMode,
+            EdgeSnapEnabled = rule.FloatingWidgetEdgeSnapEnabled
         };
         widget.ActivationRequested += () => ActivateRule(rule);
         widget.PositionChanged += (left, top) =>
@@ -89,7 +91,11 @@ public sealed class FloatingWidgetManager : IDisposable
         var target = _matcher.FindMatches(rule.ToModel(), _windowService.EnumerateTopLevelWindows()).FirstOrDefault();
         if (target is not null)
         {
-            _windowService.TryFocus(target.Handle);
+            var handle = target.Handle;
+            _windowService.TryFocus(handle);
+            System.Windows.Application.Current.Dispatcher.BeginInvoke(
+                DispatcherPriority.ContextIdle,
+                new Action(() => _windowService.TryFocus(handle)));
         }
     }
 
@@ -111,6 +117,7 @@ public sealed class FloatingWidgetManager : IDisposable
             var target = _matcher.FindMatches(rule.ToModel(), currentWindows).FirstOrDefault();
             var icon = target is null ? null : _windowService.GetWindowIconPng(target.Handle);
             widget.TriggerMode = rule.FloatingWidgetTriggerMode;
+            widget.EdgeSnapEnabled = rule.FloatingWidgetEdgeSnapEnabled;
             widget.UpdateContent(DisplayName(rule), icon);
         }
     }

@@ -154,14 +154,18 @@
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="失焦自动最小化"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />
                                 <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,3" Orientation="Horizontal">
+                                    <CheckBox Margin="0,0,12,0" VerticalAlignment="Center" Content="启用"
+                                              IsChecked="{Binding SelectedWindow.AutoMinimizeEnabled, Mode=TwoWay}" />
                                     <TextBox Width="72" Padding="7,4"
+                                             IsEnabled="{Binding SelectedWindow.AutoMinimizeEnabled}"
                                              Text="{Binding SelectedWindow.AutoMinimizeSeconds, UpdateSourceTrigger=PropertyChanged}" />
-                                    <TextBlock Margin="8,0,12,0" VerticalAlignment="Center" Text="秒（0 表示关闭）" />
+                                    <TextBlock Margin="8,0,12,0" VerticalAlignment="Center" Text="秒（0 表示立即最小化）" />
                                     <Button Padding="12,5" Content="同步到所有窗口"
                                             Command="{Binding SyncAutoMinimizeToAllCommand}" />
                                 </StackPanel>
@@ -185,6 +189,12 @@
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                Text="悬浮窗可拖动，最大 120 × 40" />
                                 </StackPanel>
+
+                                <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="边缘吸附"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <CheckBox Grid.Row="3" Grid.Column="1" Margin="8,7,0,3" VerticalAlignment="Center"
+                                          Content="拖到屏幕边缘时自动吸附对齐"
+                                          IsChecked="{Binding SelectedWindow.FloatingWidgetEdgeSnapEnabled, Mode=TwoWay}" />
                             </Grid>
 
                             <WrapPanel Margin="0,16,0,0">

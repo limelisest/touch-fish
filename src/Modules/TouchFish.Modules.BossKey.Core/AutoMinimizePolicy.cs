@@ -7,7 +7,7 @@ public static class AutoMinimizePolicy
         int seconds,
         DateTimeOffset now)
     {
-        return seconds > 0 &&
+        return seconds >= 0 &&
                lostFocusAt is not null &&
                now - lostFocusAt.Value >= TimeSpan.FromSeconds(seconds);
     }

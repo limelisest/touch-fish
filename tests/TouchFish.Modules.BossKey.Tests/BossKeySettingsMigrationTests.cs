@@ -19,7 +19,8 @@ public sealed class BossKeySettingsMigrationTests
 
         BossKeySettingsMigration.Migrate(settings);
 
-        Assert.Equal(4, settings.SchemaVersion);
+        Assert.Equal(5, settings.SchemaVersion);
+        Assert.True(settings.Windows[0].AutoMinimizeEnabled);
         Assert.Equal(120, settings.Windows[0].AutoMinimizeSeconds);
         Assert.Null(settings.Windows[0].LegacyAutoMinimizeMinutes);
     }
@@ -36,5 +37,20 @@ public sealed class BossKeySettingsMigrationTests
         BossKeySettingsMigration.Migrate(settings);
 
         Assert.Equal(60, settings.Windows[0].AutoMinimizeSeconds);
+    }
+
+    [Fact]
+    public void OlderZeroValueMigratesToDisabledSwitch()
+    {
+        var settings = new BossKeySettings
+        {
+            SchemaVersion = 4,
+            Windows = [new WindowRule { AutoMinimizeSeconds = 0 }]
+        };
+
+        BossKeySettingsMigration.Migrate(settings);
+
+        Assert.False(settings.Windows[0].AutoMinimizeEnabled);
+        Assert.Equal(0, settings.Windows[0].AutoMinimizeSeconds);
     }
 }

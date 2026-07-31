@@ -14,7 +14,17 @@ public static class BossKeySettingsMigration
             }
         }
 
-        settings.SchemaVersion = 4;
+        if (settings.SchemaVersion < 5)
+        {
+            foreach (var window in settings.Windows)
+            {
+                // In older schemas zero meant disabled. Preserve that intent while
+                // allowing zero to mean immediate once the new switch is enabled.
+                window.AutoMinimizeEnabled = window.AutoMinimizeSeconds > 0;
+            }
+        }
+
+        settings.SchemaVersion = 5;
         return settings;
     }
 }

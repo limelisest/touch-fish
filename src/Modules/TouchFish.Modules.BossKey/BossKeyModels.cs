@@ -13,11 +13,13 @@ public partial class WindowRuleItemViewModel : ObservableObject
     [ObservableProperty] private string _titleContains = string.Empty;
     [ObservableProperty] private string? _appUserModelId;
     [ObservableProperty] private string? _browserAppId;
+    [ObservableProperty] private bool _autoMinimizeEnabled = true;
     [ObservableProperty] private int _autoMinimizeSeconds = 60;
     [ObservableProperty] private bool _floatingWidgetEnabled;
     [ObservableProperty] private FloatingWidgetTriggerMode _floatingWidgetTriggerMode = FloatingWidgetTriggerMode.Click;
     [ObservableProperty] private double? _floatingWidgetLeft;
     [ObservableProperty] private double? _floatingWidgetTop;
+    [ObservableProperty] private bool _floatingWidgetEdgeSnapEnabled = true;
     [ObservableProperty] private string _currentState = "未检查";
 
     public static WindowRuleItemViewModel FromModel(WindowRule model) => new()
@@ -30,11 +32,13 @@ public partial class WindowRuleItemViewModel : ObservableObject
         TitleContains = model.TitleContains,
         AppUserModelId = model.AppUserModelId,
         BrowserAppId = model.BrowserAppId,
+        AutoMinimizeEnabled = model.AutoMinimizeEnabled,
         AutoMinimizeSeconds = model.AutoMinimizeSeconds,
         FloatingWidgetEnabled = model.FloatingWidgetEnabled,
         FloatingWidgetTriggerMode = model.FloatingWidgetTriggerMode,
         FloatingWidgetLeft = model.FloatingWidgetLeft,
-        FloatingWidgetTop = model.FloatingWidgetTop
+        FloatingWidgetTop = model.FloatingWidgetTop,
+        FloatingWidgetEdgeSnapEnabled = model.FloatingWidgetEdgeSnapEnabled
     };
 
     public WindowRule ToModel() => new()
@@ -47,11 +51,13 @@ public partial class WindowRuleItemViewModel : ObservableObject
         TitleContains = TitleContains.Trim(),
         AppUserModelId = NullIfEmpty(AppUserModelId),
         BrowserAppId = NullIfEmpty(BrowserAppId),
+        AutoMinimizeEnabled = AutoMinimizeEnabled,
         AutoMinimizeSeconds = Math.Clamp(AutoMinimizeSeconds, 0, 86400),
         FloatingWidgetEnabled = FloatingWidgetEnabled,
         FloatingWidgetTriggerMode = FloatingWidgetTriggerMode,
         FloatingWidgetLeft = FloatingWidgetLeft,
-        FloatingWidgetTop = FloatingWidgetTop
+        FloatingWidgetTop = FloatingWidgetTop,
+        FloatingWidgetEdgeSnapEnabled = FloatingWidgetEdgeSnapEnabled
     };
 
     private static string? NullIfEmpty(string? value) =>

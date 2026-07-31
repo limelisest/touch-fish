@@ -20,6 +20,9 @@ public sealed partial class Win32WindowService : IWindowService
     private const int GclpIcon = -14;
     private const int GclpIconSmall = -34;
     private const uint SmtoAbortIfHung = 0x0002;
+    private const uint SwpNoSize = 0x0001;
+    private const uint SwpNoMove = 0x0002;
+    private const uint SwpShowWindow = 0x0040;
 
     private static readonly PropertyKey AppUserModelIdKey = new(
         new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), 5);
@@ -124,13 +127,58 @@ public sealed partial class Win32WindowService : IWindowService
             return false;
         }
 
-        if (NativeMethods.IsIconic(windowHandle))
-        {
-            NativeMethods.ShowWindowAsync(windowHandle, SwRestore);
-        }
+        var currentThread = NativeMethods.GetCurrentThreadId();
+        var targetThread = NativeMethods.GetWindowThreadProcessId(windowHandle, out _);
+        var foregroundWindow = NativeMethods.GetForegroundWindow();
+        var foregroundThread = foregroundWindow == nint.Zero
+            ? 0
+            : NativeMethods.GetWindowThreadProcessId(foregroundWindow, out _);
+        var attachedToForeground = false;
+        var attachedToTarget = false;
 
-        NativeMethods.BringWindowToTop(windowHandle);
-        return NativeMethods.SetForegroundWindow(windowHandle);
+        try
+        {
+            if (foregroundThread != 0 && foregroundThread != currentThread)
+            {
+                attachedToForeground = NativeMethods.AttachThreadInput(currentThread, foregroundThread, true);
+            }
+
+            if (targetThread != 0 && targetThread != currentThread && targetThread != foregroundThread)
+            {
+                attachedToTarget = NativeMethods.AttachThreadInput(currentThread, targetThread, true);
+            }
+
+            if (NativeMethods.IsIconic(windowHandle))
+            {
+                NativeMethods.ShowWindowAsync(windowHandle, SwRestore);
+            }
+
+            NativeMethods.SetWindowPos(
+                windowHandle,
+                nint.Zero,
+                0,
+                0,
+                0,
+                0,
+                SwpNoMove | SwpNoSize | SwpShowWindow);
+            NativeMethods.BringWindowToTop(windowHandle);
+            NativeMethods.SetActiveWindow(windowHandle);
+            NativeMethods.SetFocus(windowHandle);
+            var foregroundSet = NativeMethods.SetForegroundWindow(windowHandle);
+            return foregroundSet || NativeMethods.GetForegroundWindow() == windowHandle;
+        }
+        finally
+        {
+            if (attachedToTarget)
+            {
+                NativeMethods.AttachThreadInput(currentThread, targetThread, false);
+            }
+
+            if (attachedToForeground)
+            {
+                NativeMethods.AttachThreadInput(currentThread, foregroundThread, false);
+            }
+        }
     }
 
     public bool IsWindow(nint windowHandle) => NativeMethods.IsWindow(windowHandle);
@@ -452,8 +500,32 @@ public sealed partial class Win32WindowService : IWindowService
         internal static extern bool SetForegroundWindow(nint windowHandle);
 
         [DllImport("user32.dll")]
+        internal static extern nint SetActiveWindow(nint windowHandle);
+
+        [DllImport("user32.dll")]
+        internal static extern nint SetFocus(nint windowHandle);
+
+        [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool BringWindowToTop(nint windowHandle);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool SetWindowPos(
+            nint windowHandle,
+            nint insertAfter,
+            int x,
+            int y,
+            int width,
+            int height,
+            uint flags);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool AttachThreadInput(uint attachThread, uint attachToThread, [MarshalAs(UnmanagedType.Bool)] bool attach);
+
+        [DllImport("kernel32.dll")]
+        internal static extern uint GetCurrentThreadId();
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
