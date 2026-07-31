@@ -1,11 +1,12 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Windows.Threading;
 using TouchFish.Contracts;
 
 namespace TouchFish.Modules.BossKey;
 
-public partial class BossKeyViewModel : ObservableObject
+public partial class BossKeyViewModel : ObservableObject, IDisposable
 {
     private const string HotkeyOwner = "boss-key.default";
     private readonly IWindowService _windowService;
@@ -14,6 +15,9 @@ public partial class BossKeyViewModel : ObservableObject
     private readonly IBossKeySettingsStore _settingsStore;
     private readonly WindowRuleMatcher _matcher;
     private readonly List<RestoreEntry> _placements = [];
+    private readonly Dictionary<nint, AutoMinimizeState> _autoMinimizeStates = [];
+    private readonly DispatcherTimer _autoMinimizeTimer;
+    private DateTimeOffset _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
     private HotkeyGesture _hotkey = new(0x4D, HotkeyModifiers.Control | HotkeyModifiers.Alt, "M");
     private bool _hotkeyAttached;
     private bool _windowsMinimized;
@@ -30,6 +34,12 @@ public partial class BossKeyViewModel : ObservableObject
         _windowPickerService = windowPickerService;
         _settingsStore = settingsStore;
         _matcher = matcher;
+
+        _autoMinimizeTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _autoMinimizeTimer.Tick += OnAutoMinimizeTick;
     }
 
     public ObservableCollection<WindowRuleItemViewModel> Windows { get; } = [];
@@ -56,6 +66,7 @@ public partial class BossKeyViewModel : ObservableObject
         StatusText = Windows.Count == 0
             ? "请先添加需要最小化的窗口。"
             : $"已载入 {Windows.Count} 条窗口规则；点击刷新可检查状态。";
+        _autoMinimizeTimer.Start();
     }
 
     public void AttachHotkey(nint mainWindowHandle)
@@ -130,6 +141,7 @@ public partial class BossKeyViewModel : ObservableObject
             TitleContains = string.IsNullOrWhiteSpace(window.BrowserAppId) ? window.Title : string.Empty,
             AppUserModelId = window.AppUserModelId,
             BrowserAppId = window.BrowserAppId,
+            AutoMinimizeMinutes = 1,
             CurrentState = "运行中"
         };
 
@@ -208,6 +220,29 @@ public partial class BossKeyViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task SyncAutoMinimizeToAllAsync()
+    {
+        if (SelectedWindow is null)
+        {
+            StatusText = "请先选择一条窗口规则。";
+            return;
+        }
+
+        var minutes = Math.Clamp(SelectedWindow.AutoMinimizeMinutes, 0, 1440);
+        SelectedWindow.AutoMinimizeMinutes = minutes;
+        foreach (var window in Windows)
+        {
+            window.AutoMinimizeMinutes = minutes;
+        }
+
+        _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
+        await SaveSettingsAsync();
+        StatusText = minutes == 0
+            ? "已关闭所有窗口的失焦自动最小化。"
+            : $"已把自动最小化时间同步为 {minutes} 分钟。";
+    }
+
+    [RelayCommand]
     private void LocateSelected()
     {
         if (SelectedWindow is null)
@@ -247,6 +282,90 @@ public partial class BossKeyViewModel : ObservableObject
                 1 => "运行中",
                 _ => $"匹配 {count} 个"
             };
+        }
+    }
+
+    private void OnAutoMinimizeTick(object? sender, EventArgs e)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (now - _lastAutoMinimizeRefresh >= TimeSpan.FromSeconds(5))
+        {
+            RefreshAutoMinimizeTargets(now);
+        }
+
+        var foregroundWindow = _windowService.GetForegroundWindowHandle();
+        if (foregroundWindow == nint.Zero)
+        {
+            return;
+        }
+
+        foreach (var (handle, state) in _autoMinimizeStates.ToArray())
+        {
+            if (!_windowService.IsWindow(handle))
+            {
+                _autoMinimizeStates.Remove(handle);
+                continue;
+            }
+
+            if (_windowService.IsMinimized(handle))
+            {
+                state.LostFocusAt = null;
+                continue;
+            }
+
+            if (handle == foregroundWindow)
+            {
+                state.LostFocusAt = null;
+                continue;
+            }
+
+            state.LostFocusAt ??= now;
+            if (!AutoMinimizePolicy.ShouldMinimize(state.LostFocusAt, state.Minutes, now))
+            {
+                continue;
+            }
+
+            if (_windowService.Minimize(handle))
+            {
+                state.Rule.CurrentState = "已自动最小化";
+                StatusText = $"“{state.Rule.Name}”失去焦点 {state.Minutes} 分钟，已自动最小化。";
+            }
+
+            state.LostFocusAt = null;
+        }
+    }
+
+    private void RefreshAutoMinimizeTargets(DateTimeOffset now)
+    {
+        _lastAutoMinimizeRefresh = now;
+        var currentWindows = _windowService.EnumerateTopLevelWindows();
+        var activeHandles = new HashSet<nint>();
+
+        foreach (var rule in Windows.Where(rule => rule.AutoMinimizeMinutes > 0))
+        {
+            var minutes = Math.Clamp(rule.AutoMinimizeMinutes, 1, 1440);
+            foreach (var window in _matcher.FindMatches(rule.ToModel(), currentWindows))
+            {
+                if (!activeHandles.Add(window.Handle))
+                {
+                    continue;
+                }
+
+                if (_autoMinimizeStates.TryGetValue(window.Handle, out var state))
+                {
+                    state.Rule = rule;
+                    state.Minutes = minutes;
+                }
+                else
+                {
+                    _autoMinimizeStates[window.Handle] = new AutoMinimizeState(rule, minutes);
+                }
+            }
+        }
+
+        foreach (var staleHandle in _autoMinimizeStates.Keys.Where(handle => !activeHandles.Contains(handle)).ToArray())
+        {
+            _autoMinimizeStates.Remove(staleHandle);
         }
     }
 
@@ -334,5 +453,18 @@ public partial class BossKeyViewModel : ObservableObject
 
     private sealed record TargetWindow(WindowDescriptor Window, int Priority);
 
+    public void Dispose()
+    {
+        _autoMinimizeTimer.Stop();
+        _autoMinimizeTimer.Tick -= OnAutoMinimizeTick;
+    }
+
     private sealed record RestoreEntry(WindowPlacementSnapshot Placement, int Priority);
+
+    private sealed class AutoMinimizeState(WindowRuleItemViewModel rule, int minutes)
+    {
+        public WindowRuleItemViewModel Rule { get; set; } = rule;
+        public int Minutes { get; set; } = minutes;
+        public DateTimeOffset? LostFocusAt { get; set; }
+    }
 }

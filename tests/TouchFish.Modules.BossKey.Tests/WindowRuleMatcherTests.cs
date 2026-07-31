@@ -9,6 +9,14 @@ public sealed class WindowRuleMatcherTests
     private readonly WindowRuleMatcher _matcher = new();
 
     [Fact]
+    public void NewWindowRule_DefaultsAutoMinimizeToOneMinute()
+    {
+        var rule = new WindowRule();
+
+        Assert.Equal(1, rule.AutoMinimizeMinutes);
+    }
+
+    [Fact]
     public void BrowserAppId_IsStableWhenTitleChanges()
     {
         var rule = Rule(browserAppId: "telegram-app-id", title: string.Empty);

@@ -53,6 +53,8 @@ public sealed partial class Win32WindowService : IWindowService
         return result;
     }
 
+    public nint GetForegroundWindowHandle() => NativeMethods.GetForegroundWindow();
+
     public bool TryFocus(nint windowHandle)
     {
         if (!NativeMethods.IsWindow(windowHandle))
@@ -335,6 +337,9 @@ public sealed partial class Win32WindowService : IWindowService
 
         [DllImport("user32.dll")]
         internal static extern nint GetAncestor(nint windowHandle, uint flags);
+
+        [DllImport("user32.dll")]
+        internal static extern nint GetForegroundWindow();
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]

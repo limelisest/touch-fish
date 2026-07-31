@@ -13,6 +13,7 @@ namespace TouchFish.App;
 public partial class App : System.Windows.Application
 {
     private IHost? _host;
+    private SystemThemeService? _themeService;
     private TrayIconService? _trayIcon;
     private bool _exitRequested;
     private int _fatalReported;
@@ -35,6 +36,9 @@ public partial class App : System.Windows.Application
 
         try
         {
+            _themeService = new SystemThemeService(this);
+            _themeService.Start();
+
             var builder = Host.CreateApplicationBuilder(e.Args);
             builder.Services.AddSingleton<IHotkeyService, Win32HotkeyService>();
             builder.Services.AddSingleton<IWindowService, Win32WindowService>();
@@ -127,6 +131,7 @@ public partial class App : System.Windows.Application
     protected override void OnExit(ExitEventArgs e)
     {
         _trayIcon?.Dispose();
+        _themeService?.Dispose();
 
         if (_host is not null)
         {

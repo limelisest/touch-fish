@@ -1,26 +1,30 @@
 <UserControl x:Class="TouchFish.Modules.BossKey.BossKeyView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             MinWidth="760" MinHeight="500"
-             Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}">
+             MinWidth="760" MinHeight="620"
+             Background="{DynamicResource AppBackgroundBrush}">
     <Grid Margin="28">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="20" />
+            <RowDefinition Height="18" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
             <TextBlock FontSize="28" FontWeight="SemiBold" Text="老板键" />
-            <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Text="按一次最小化已添加的窗口，再按一次恢复。列表顶部的窗口会最后恢复并显示在最上层。" />
+            <TextBlock Margin="0,6,0,0"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Text="按一次最小化目标窗口，再按一次按列表层级恢复。" />
         </StackPanel>
 
-        <Border Grid.Row="1" Margin="0,22,0,0" Padding="16" CornerRadius="8"
-                Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+        <Border Grid.Row="1" Margin="0,20,0,0" Padding="16" CornerRadius="8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="140" />
@@ -29,15 +33,17 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock FontWeight="SemiBold" Text="全局快捷键" />
-                    <TextBlock Margin="0,3,0,0" FontSize="12" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Text="点击右侧后按键" />
+                    <TextBlock Margin="0,3,0,0" FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Text="点击右侧后按键" />
                 </StackPanel>
                 <Border x:Name="HotkeyCapture"
                         Grid.Column="1"
                         Padding="12,8"
-                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="5"
-                        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                        Background="{DynamicResource ControlBackgroundBrush}"
                         Focusable="True"
                         MouseLeftButtonDown="HotkeyCapture_OnMouseLeftButtonDown"
                         PreviewKeyDown="HotkeyCapture_OnPreviewKeyDown">
@@ -47,7 +53,7 @@
                                Text="{Binding HotkeyText}" />
                 </Border>
                 <TextBlock Grid.Column="2" Margin="16,0,0,0" VerticalAlignment="Center"
-                           Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            Text="至少包含 Ctrl、Alt 或 Shift；F12 不可用。" />
             </Grid>
         </Border>
@@ -59,7 +65,10 @@
             </Grid.ColumnDefinitions>
             <StackPanel>
                 <TextBlock FontSize="18" FontWeight="SemiBold" Text="目标窗口" />
-                <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Text="{Binding PickerHint}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Margin="0,4,0,0"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="列表顶部优先级最高，会最后恢复并显示在最上层。"
+                           TextTrimming="CharacterEllipsis" />
             </StackPanel>
             <Button x:Name="PickerButton"
                     Grid.Column="1"
@@ -70,6 +79,7 @@
         </Grid>
 
         <DataGrid Grid.Row="4"
+                  MinHeight="170"
                   ItemsSource="{Binding Windows}"
                   SelectedItem="{Binding SelectedWindow}"
                   AutoGenerateColumns="False"
@@ -79,32 +89,38 @@
                   HeadersVisibility="Column"
                   GridLinesVisibility="Horizontal">
             <DataGrid.Columns>
-                <DataGridTextColumn Width="1.4*" Header="名称（可修改）" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
-                <DataGridTextColumn Width="1*" Header="进程" Binding="{Binding ProcessName}" IsReadOnly="True" />
-                <DataGridTextColumn Width="2*" Header="标题包含（可修改）" Binding="{Binding TitleContains, UpdateSourceTrigger=PropertyChanged}" />
-                <DataGridTextColumn Width="100" Header="状态" Binding="{Binding CurrentState}" IsReadOnly="True" />
+                <DataGridTextColumn Width="1.3*" Header="名称" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                <DataGridTextColumn Width="0.8*" Header="进程" Binding="{Binding ProcessName}" IsReadOnly="True" />
+                <DataGridTextColumn Width="1.5*" Header="标题包含" Binding="{Binding TitleContains, UpdateSourceTrigger=PropertyChanged}" />
+                <DataGridTextColumn Width="120" Header="失焦最小化（分）" Binding="{Binding AutoMinimizeMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                <DataGridTextColumn Width="90" Header="状态" Binding="{Binding CurrentState}" IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>
 
-        <Grid Grid.Row="5" Margin="0,12,0,0">
+        <Grid Grid.Row="5" Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal">
-                <Button MinWidth="90" Padding="12,7" Content="定位窗口" Command="{Binding LocateSelectedCommand}" />
-                <Button MinWidth="80" Margin="8,0,0,0" Padding="12,7" Content="删除" Command="{Binding DeleteSelectedCommand}" />
-                <Button MinWidth="70" Margin="8,0,0,0" Padding="12,7" Content="上移" ToolTip="越靠上，恢复后越靠前" Command="{Binding MoveSelectedUpCommand}" />
-                <Button MinWidth="70" Margin="8,0,0,0" Padding="12,7" Content="下移" ToolTip="越靠下，恢复后越靠后" Command="{Binding MoveSelectedDownCommand}" />
-                <Button MinWidth="90" Margin="8,0,0,0" Padding="12,7" Content="刷新状态" Command="{Binding RefreshWindowStatesCommand}" />
-            </StackPanel>
-            <Button Grid.Column="1" MinWidth="110" Padding="14,7" Content="保存修改" Command="{Binding SaveCommand}" />
+            <WrapPanel>
+                <Button MinWidth="82" Content="定位窗口" Command="{Binding LocateSelectedCommand}" />
+                <Button MinWidth="68" Margin="8,0,0,0" Content="删除" Command="{Binding DeleteSelectedCommand}" />
+                <Button MinWidth="68" Margin="8,0,0,0" Content="上移" ToolTip="越靠上，恢复后越靠前" Command="{Binding MoveSelectedUpCommand}" />
+                <Button MinWidth="68" Margin="8,0,0,0" Content="下移" ToolTip="越靠下，恢复后越靠后" Command="{Binding MoveSelectedDownCommand}" />
+                <Button MinWidth="82" Margin="8,0,0,0" Content="刷新状态" Command="{Binding RefreshWindowStatesCommand}" />
+            </WrapPanel>
+            <Button Grid.Column="1" MinWidth="104" Content="保存修改" Command="{Binding SaveCommand}" />
         </Grid>
 
-        <StackPanel Grid.Row="6" Margin="0,16,0,0">
-            <Expander Header="所选窗口的识别信息" IsExpanded="True">
-                <Grid Margin="0,10,0,0">
+        <Border Grid.Row="6" Margin="0,14,0,0" Padding="14" CornerRadius="8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+            <StackPanel>
+                <TextBlock Margin="0,0,0,10" FontWeight="SemiBold" Text="所选窗口信息" />
+                <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="120" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
@@ -114,17 +130,37 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="程序路径" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
-                    <TextBox Grid.Row="0" Grid.Column="1" Margin="8,2" IsReadOnly="True" Text="{Binding SelectedWindow.ProcessPath}" />
-                    <TextBlock Grid.Row="1" Text="窗口类" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Margin="8,2" IsReadOnly="True" Text="{Binding SelectedWindow.WindowClass}" />
-                    <TextBlock Grid.Row="2" Text="AppUserModelID" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
-                    <TextBox Grid.Row="2" Grid.Column="1" Margin="8,2" IsReadOnly="True" Text="{Binding SelectedWindow.AppUserModelId}" />
-                    <TextBlock Grid.Row="3" Text="浏览器 App ID" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
-                    <TextBox Grid.Row="3" Grid.Column="1" Margin="8,2" IsReadOnly="True" Text="{Binding SelectedWindow.BrowserAppId}" />
+
+                    <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="程序路径"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Margin="8,2"
+                             IsReadOnly="True" Text="{Binding SelectedWindow.ProcessPath}" />
+
+                    <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="窗口类"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Margin="8,2"
+                             IsReadOnly="True" Text="{Binding SelectedWindow.WindowClass}" />
+                    <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="AppUserModelID"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <TextBox Grid.Row="1" Grid.Column="3" Margin="8,2"
+                             IsReadOnly="True" Text="{Binding SelectedWindow.AppUserModelId}" />
+
+                    <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="浏览器 App ID"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="8,2"
+                             IsReadOnly="True" Text="{Binding SelectedWindow.BrowserAppId}" />
+
+                    <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="自动最小化"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Margin="8,4,0,0" Orientation="Horizontal">
+                        <TextBox Width="72" Padding="7,4" Text="{Binding SelectedWindow.AutoMinimizeMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Margin="8,0,12,0" VerticalAlignment="Center" Text="分钟（0 表示关闭）" />
+                        <Button Padding="12,5" Content="同步到所有窗口" Command="{Binding SyncAutoMinimizeToAllCommand}" />
+                    </StackPanel>
                 </Grid>
-            </Expander>
-            <TextBlock Margin="0,12,0,0" Text="{Binding StatusText}" TextWrapping="Wrap" />
-        </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="7" Margin="0,12,0,0" Text="{Binding StatusText}" TextWrapping="Wrap" />
     </Grid>
 </UserControl>

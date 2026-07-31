@@ -4,11 +4,11 @@
         xmlns:bossKey="clr-namespace:TouchFish.Modules.BossKey;assembly=TouchFish.Modules.BossKey"
         Title="TouchFish"
         Icon="/Assets/app-icon.ico"
-        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
-        Width="980"
-        Height="720"
-        MinWidth="820"
-        MinHeight="600"
+        Background="{DynamicResource AppBackgroundBrush}"
+        Width="1080"
+        Height="780"
+        MinWidth="900"
+        MinHeight="700"
         WindowStartupLocation="CenterScreen">
     <Grid>
         <bossKey:BossKeyView />

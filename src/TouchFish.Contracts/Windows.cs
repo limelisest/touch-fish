@@ -32,6 +32,7 @@ public interface IWindowService
 {
     WindowDescriptor? InspectAtScreenPoint(int x, int y);
     IReadOnlyList<WindowDescriptor> EnumerateTopLevelWindows();
+    nint GetForegroundWindowHandle();
     bool TryFocus(nint windowHandle);
     bool IsWindow(nint windowHandle);
     bool IsMinimized(nint windowHandle);
