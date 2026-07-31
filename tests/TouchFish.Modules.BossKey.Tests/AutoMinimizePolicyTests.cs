@@ -16,9 +16,11 @@ public sealed class AutoMinimizePolicyTests
     }
 
     [Fact]
-    public void ZeroSecondsTriggersImmediatelyAfterFocusIsLost()
+    public void ZeroSecondsUsesOneSecondCursorTransitionThreshold()
     {
-        Assert.True(AutoMinimizePolicy.ShouldMinimize(Now, 0, Now));
+        Assert.False(AutoMinimizePolicy.ShouldMinimize(Now, 0, Now));
+        Assert.False(AutoMinimizePolicy.ShouldMinimize(Now, 0, Now.AddMilliseconds(999)));
+        Assert.True(AutoMinimizePolicy.ShouldMinimize(Now, 0, Now.AddSeconds(1)));
     }
 
     [Fact]

@@ -7,8 +7,9 @@ public static class AutoMinimizePolicy
         int seconds,
         DateTimeOffset now)
     {
+        var effectiveSeconds = Math.Max(1, seconds);
         return seconds >= 0 &&
                inactiveSince is not null &&
-               now - inactiveSince.Value >= TimeSpan.FromSeconds(seconds);
+               now - inactiveSince.Value >= TimeSpan.FromSeconds(effectiveSeconds);
     }
 }
