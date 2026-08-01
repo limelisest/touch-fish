@@ -16,11 +16,20 @@ public sealed class AutoMinimizePolicyTests
     }
 
     [Fact]
-    public void ZeroSecondsUsesOneSecondCursorTransitionThreshold()
+    public void ZeroSecondsMinimizesImmediatelyAfterCursorLeaves()
     {
-        Assert.False(AutoMinimizePolicy.ShouldMinimize(Now, 0, Now));
-        Assert.False(AutoMinimizePolicy.ShouldMinimize(Now, 0, Now.AddMilliseconds(999)));
-        Assert.True(AutoMinimizePolicy.ShouldMinimize(Now, 0, Now.AddSeconds(1)));
+        Assert.True(AutoMinimizePolicy.ShouldMinimize(Now, 0, Now));
+    }
+
+    [Fact]
+    public void WidgetEntryGraceProtectsOnlyTheFirstSecond()
+    {
+        var graceUntil = Now.AddSeconds(1);
+
+        Assert.True(AutoMinimizePolicy.IsEntryGraceActive(graceUntil, Now));
+        Assert.True(AutoMinimizePolicy.IsEntryGraceActive(graceUntil, Now.AddMilliseconds(999)));
+        Assert.False(AutoMinimizePolicy.IsEntryGraceActive(graceUntil, Now.AddSeconds(1)));
+        Assert.False(AutoMinimizePolicy.IsEntryGraceActive(null, Now));
     }
 
     [Fact]

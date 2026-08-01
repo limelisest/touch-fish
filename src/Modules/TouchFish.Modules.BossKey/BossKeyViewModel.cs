@@ -18,6 +18,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private readonly FloatingWidgetManager _floatingWidgetManager;
     private readonly IToolWindowRegistry _toolWindowRegistry;
     private readonly Dictionary<nint, AutoMinimizeState> _autoMinimizeStates = [];
+    private readonly Dictionary<nint, DateTimeOffset> _widgetEntryGraceUntil = [];
     private readonly DispatcherTimer _autoMinimizeTimer;
     private DateTimeOffset _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
     private nint _lastHoveredWindowHandle;
@@ -40,6 +41,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         _settingsStore = settingsStore;
         _matcher = matcher;
         _floatingWidgetManager = floatingWidgetManager;
+        _floatingWidgetManager.TargetActivatedFromWidget += OnTargetActivatedFromWidget;
         _toolWindowRegistry = toolWindowRegistry;
 
         _autoMinimizeTimer = new DispatcherTimer(DispatcherPriority.Background)
@@ -326,12 +328,19 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             if (!_windowService.IsWindow(handle))
             {
                 _autoMinimizeStates.Remove(handle);
+                _widgetEntryGraceUntil.Remove(handle);
                 continue;
             }
 
             if (_windowService.IsMinimized(handle))
             {
                 state.LostFocusAt = null;
+                if (!_widgetEntryGraceUntil.TryGetValue(handle, out var minimizedGraceUntil) ||
+                    !AutoMinimizePolicy.IsEntryGraceActive(minimizedGraceUntil, now))
+                {
+                    _widgetEntryGraceUntil.Remove(handle);
+                }
+
                 continue;
             }
 
@@ -340,9 +349,18 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                  BelongsToRuleProcess(state.Rule, hoveredWindow)))
             {
                 state.LostFocusAt = null;
+                _widgetEntryGraceUntil.Remove(handle);
                 continue;
             }
 
+            if (state.Seconds == 0 &&
+                _widgetEntryGraceUntil.TryGetValue(handle, out var graceUntil) &&
+                AutoMinimizePolicy.IsEntryGraceActive(graceUntil, now))
+            {
+                continue;
+            }
+
+            _widgetEntryGraceUntil.Remove(handle);
             state.LostFocusAt ??= now;
             if (!AutoMinimizePolicy.ShouldMinimize(state.LostFocusAt, state.Seconds, now))
             {
@@ -357,6 +375,11 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
             state.LostFocusAt = null;
         }
+    }
+
+    private void OnTargetActivatedFromWidget(nint windowHandle)
+    {
+        _widgetEntryGraceUntil[windowHandle] = DateTimeOffset.UtcNow.AddSeconds(1);
     }
 
     private static bool BelongsToRuleProcess(WindowRuleItemViewModel rule, WindowDescriptor? window)
@@ -568,6 +591,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
         _autoMinimizeTimer.Stop();
         _autoMinimizeTimer.Tick -= OnAutoMinimizeTick;
+        _floatingWidgetManager.TargetActivatedFromWidget -= OnTargetActivatedFromWidget;
+        _widgetEntryGraceUntil.Clear();
     }
 
     private sealed class AutoMinimizeState(WindowRuleItemViewModel rule, int seconds)

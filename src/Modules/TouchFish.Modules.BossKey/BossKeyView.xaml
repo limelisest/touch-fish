@@ -164,7 +164,7 @@
                                     <TextBox Width="72" Padding="7,4"
                                              IsEnabled="{Binding SelectedWindow.AutoMinimizeEnabled}"
                                              Text="{Binding SelectedWindow.AutoMinimizeSeconds, UpdateSourceTrigger=PropertyChanged}" />
-                                    <TextBlock Margin="8,0,12,0" VerticalAlignment="Center" Text="秒（0 使用 1 秒过渡保护）" />
+                                    <TextBlock Margin="8,0,12,0" VerticalAlignment="Center" Text="秒（0 移开立即；悬浮窗进入保护 1 秒）" />
                                     <Button Padding="12,5" Content="同步到所有窗口"
                                             Command="{Binding SyncAutoMinimizeToAllCommand}" />
                                 </StackPanel>

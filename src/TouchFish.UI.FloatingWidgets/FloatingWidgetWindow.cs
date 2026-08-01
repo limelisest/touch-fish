@@ -79,6 +79,7 @@ public sealed class FloatingWidgetWindow : Window
         };
         _hoverTimer.Tick += OnHoverTimerTick;
 
+        SourceInitialized += (_, _) => FloatingWindowStyles.HideFromAltTab(this);
         PreviewMouseLeftButtonDown += OnMouseLeftButtonDown;
         PreviewMouseMove += OnMouseMove;
         PreviewMouseLeftButtonUp += OnMouseLeftButtonUp;

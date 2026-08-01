@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using TouchFish.UI.FloatingWidgets;
 
 namespace TouchFish.Modules.Reader;
 
@@ -257,6 +258,7 @@ public partial class ReaderWindow : Window
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
+        FloatingWindowStyles.HideFromAltTab(this);
         _windowSource = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
         _windowSource?.AddHook(WindowMessageHook);
     }

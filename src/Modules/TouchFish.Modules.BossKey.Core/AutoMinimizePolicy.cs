@@ -7,9 +7,11 @@ public static class AutoMinimizePolicy
         int seconds,
         DateTimeOffset now)
     {
-        var effectiveSeconds = Math.Max(1, seconds);
         return seconds >= 0 &&
                inactiveSince is not null &&
-               now - inactiveSince.Value >= TimeSpan.FromSeconds(effectiveSeconds);
+               now - inactiveSince.Value >= TimeSpan.FromSeconds(seconds);
     }
+
+    public static bool IsEntryGraceActive(DateTimeOffset? graceUntil, DateTimeOffset now) =>
+        graceUntil is not null && now < graceUntil.Value;
 }

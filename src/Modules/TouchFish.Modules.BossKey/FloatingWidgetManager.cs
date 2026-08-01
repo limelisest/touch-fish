@@ -27,6 +27,8 @@ public sealed class FloatingWidgetManager : IDisposable
         _refreshTimer.Start();
     }
 
+    public event Action<nint>? TargetActivatedFromWidget;
+
     public void Sync(IEnumerable<WindowRuleItemViewModel> rules, Func<Task> saveSettings)
     {
         _rules = rules.ToArray();
@@ -103,6 +105,7 @@ public sealed class FloatingWidgetManager : IDisposable
             _targetHandles[rule.Id] = handle;
         }
 
+        TargetActivatedFromWidget?.Invoke(handle);
         _windowService.TryFocus(handle);
         System.Windows.Application.Current.Dispatcher.BeginInvoke(
             DispatcherPriority.ContextIdle,
