@@ -15,7 +15,6 @@ public partial class ReaderWindow : Window
     private const int WindowHitTestMessage = 0x0084;
     private readonly ReaderLibraryService _library;
     private readonly DispatcherTimer _saveTimer;
-    private readonly DispatcherTimer _pointerTimer;
     private ReaderBook? _book;
     private Guid? _loadedBookId;
     private int _loadedChapterIndex = -1;
@@ -23,7 +22,6 @@ public partial class ReaderWindow : Window
     private bool _allowClose;
     private bool _isClosed;
     private bool _loading;
-    private bool _pointerSeenInside;
 
     public ReaderWindow(ReaderLibraryService library)
     {
@@ -49,18 +47,11 @@ public partial class ReaderWindow : Window
             _saveTimer.Stop();
             await SaveStateAsync();
         };
-        _pointerTimer = new DispatcherTimer(DispatcherPriority.Input)
-        {
-            Interval = TimeSpan.FromMilliseconds(80)
-        };
-        _pointerTimer.Tick += OnPointerTimerTick;
     }
 
     public ReaderBook? CurrentBook => _book;
     public event Action<ReaderBook, int>? ChapterChanged;
     public event Action<ReaderBook, double>? OpacityChanged;
-    public event Action? PointerExited;
-    public event Action? DismissRequested;
 
     public async Task ShowBookAsync(ReaderBook book, int chapterIndex)
     {
@@ -306,50 +297,10 @@ public partial class ReaderWindow : Window
         }
 
         e.Cancel = true;
-        DismissRequested?.Invoke();
         if (IsVisible)
         {
             _ = SaveStateAsync();
             Hide();
-        }
-    }
-
-    public void StartPointerTracking()
-    {
-        _pointerSeenInside = false;
-        _pointerTimer.Start();
-    }
-
-    public void StopPointerTracking() => _pointerTimer.Stop();
-
-    public void HideForWidget()
-    {
-        _pointerTimer.Stop();
-        _ = SaveStateAsync();
-        Hide();
-    }
-
-    private void OnPointerTimerTick(object? sender, EventArgs e)
-    {
-        var handle = new WindowInteropHelper(this).Handle;
-        if (handle == nint.Zero || !NativeMethods.GetCursorPos(out var point) || !NativeMethods.GetWindowRect(handle, out var rect))
-        {
-            return;
-        }
-
-        const int tolerance = 4;
-        var inside = point.X >= rect.Left - tolerance && point.X < rect.Right + tolerance &&
-                     point.Y >= rect.Top - tolerance && point.Y < rect.Bottom + tolerance;
-        if (inside)
-        {
-            _pointerSeenInside = true;
-            return;
-        }
-
-        if (_pointerSeenInside)
-        {
-            _pointerTimer.Stop();
-            PointerExited?.Invoke();
         }
     }
 
@@ -409,7 +360,6 @@ public partial class ReaderWindow : Window
     {
         _allowClose = true;
         _saveTimer.Stop();
-        _pointerTimer.Stop();
     }
 
     public void Shutdown()
