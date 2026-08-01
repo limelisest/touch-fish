@@ -68,14 +68,8 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="130" />
                                 <ColumnDefinition Width="230" />
-                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock FontWeight="SemiBold" Text="全局快捷键" />
-                                <TextBlock Margin="0,3,0,0" FontSize="12"
-                                           Foreground="{DynamicResource TextSecondaryBrush}"
-                                           Text="点击右侧后按键" />
-                            </StackPanel>
+                            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="全局快捷键" />
                             <Border x:Name="HotkeyCapture" Grid.Column="1" Padding="12,8" CornerRadius="5"
                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                                     Background="{DynamicResource ControlBackgroundBrush}" Focusable="True"
@@ -84,10 +78,6 @@
                                 <TextBlock x:Name="HotkeyCaptureText" HorizontalAlignment="Center"
                                            FontWeight="SemiBold" Text="{Binding HotkeyText}" />
                             </Border>
-                            <TextBlock Grid.Column="2" Margin="14,0,0,0" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                       Text="有任一窗口显示时全部最小化；全部最小化时统一显示。"
-                                       TextWrapping="Wrap" />
                         </Grid>
                     </Border>
 
@@ -129,12 +119,8 @@
 
                                 <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="窗口类"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />
-                                <TextBox Grid.Row="3" Grid.Column="1" Margin="8,3"
+                                <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Margin="8,3"
                                          IsReadOnly="True" Text="{Binding SelectedWindow.WindowClass}" />
-                                <TextBlock Grid.Row="3" Grid.Column="2" VerticalAlignment="Center" Text="状态"
-                                           Foreground="{DynamicResource TextSecondaryBrush}" />
-                                <TextBox Grid.Row="3" Grid.Column="3" Margin="8,3"
-                                         IsReadOnly="True" Text="{Binding SelectedWindow.CurrentState}" />
 
                                 <TextBlock Grid.Row="4" VerticalAlignment="Center" Text="浏览器 App ID"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />
@@ -151,12 +137,9 @@
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="光标移开自动最小化"
+                                <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="自动最小化"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />
                                 <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,3" Orientation="Horizontal">
                                     <CheckBox Margin="0,0,12,0" VerticalAlignment="Center" Content="启用"
@@ -164,43 +147,46 @@
                                     <TextBox Width="72" Padding="7,4"
                                              IsEnabled="{Binding SelectedWindow.AutoMinimizeEnabled}"
                                              Text="{Binding SelectedWindow.AutoMinimizeSeconds, UpdateSourceTrigger=PropertyChanged}" />
-                                    <TextBlock Margin="8,0,12,0" VerticalAlignment="Center" Text="秒（0 移开立即；悬浮窗进入保护 1 秒）" />
+                                    <TextBlock Margin="8,0,12,0" VerticalAlignment="Center" Text="秒" />
                                     <Button Padding="12,5" Content="同步到所有窗口"
                                             Command="{Binding SyncAutoMinimizeToAllCommand}" />
                                 </StackPanel>
 
-                                <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="悬浮窗"
+                            </Grid>
+
+                        </StackPanel>
+                    </Border>
+
+                    <Border Margin="0,14,0,0" Padding="16" CornerRadius="8"
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock FontSize="16" FontWeight="SemiBold" Text="悬浮窗设置" />
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock VerticalAlignment="Center" Text="悬浮窗"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />
-                                <CheckBox Grid.Row="1" Grid.Column="1" Margin="8,8,0,5" VerticalAlignment="Center"
+                                <CheckBox Grid.Column="1" Margin="8,5" VerticalAlignment="Center"
                                           Content="为此窗口显示悬浮窗"
                                           IsChecked="{Binding SelectedWindow.FloatingWidgetEnabled, Mode=TwoWay}" />
-
-                                <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="悬浮窗触发"
+                                <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="触发方式"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />
-                                <StackPanel Grid.Row="2" Grid.Column="1" Margin="8,3" Orientation="Horizontal">
+                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,5" Orientation="Horizontal">
                                     <RadioButton GroupName="FloatingWidgetTrigger" VerticalAlignment="Center"
                                                  Content="点击触发"
                                                  IsChecked="{Binding SelectedWindow.IsClickTrigger, Mode=TwoWay}" />
                                     <RadioButton GroupName="FloatingWidgetTrigger" Margin="14,0,0,0" VerticalAlignment="Center"
                                                  Content="光标停留 0.3 秒触发"
                                                  IsChecked="{Binding SelectedWindow.IsPointerHoverTrigger, Mode=TwoWay}" />
-                                    <TextBlock Margin="12,0,0,0" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Text="悬浮窗可拖动，最大 120 × 40" />
                                 </StackPanel>
-
-                                <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="边缘吸附"
-                                           Foreground="{DynamicResource TextSecondaryBrush}" />
-                                <CheckBox Grid.Row="3" Grid.Column="1" Margin="8,7,0,3" VerticalAlignment="Center"
-                                          Content="拖到屏幕边缘或其他悬浮窗时自动吸附并对齐"
-                                          IsChecked="{Binding SelectedWindow.FloatingWidgetEdgeSnapEnabled, Mode=TwoWay}" />
                             </Grid>
-
-                            <WrapPanel Margin="0,16,0,0">
-                                <Button MinWidth="90" Content="打开窗口" Command="{Binding LocateSelectedCommand}" />
-                                <Button MinWidth="90" Margin="8,0,0,0" Content="刷新状态" Command="{Binding RefreshWindowStatesCommand}" />
-                                <Button MinWidth="100" Margin="8,0,0,0" Content="保存修改" Command="{Binding SaveCommand}" />
-                            </WrapPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>

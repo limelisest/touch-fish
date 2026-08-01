@@ -54,7 +54,7 @@ public sealed class FloatingWidgetManager : IDisposable
             }
 
             widget.TriggerMode = rule.FloatingWidgetTriggerMode;
-            widget.EdgeSnapEnabled = rule.FloatingWidgetEdgeSnapEnabled;
+            widget.EdgeSnapEnabled = true;
             widget.UpdateContent(DisplayName(rule), null);
         }
 
@@ -66,7 +66,7 @@ public sealed class FloatingWidgetManager : IDisposable
         var widget = new FloatingWidgetWindow
         {
             TriggerMode = rule.FloatingWidgetTriggerMode,
-            EdgeSnapEnabled = rule.FloatingWidgetEdgeSnapEnabled
+            EdgeSnapEnabled = true
         };
         widget.ActivationRequested += () => ActivateRule(rule);
         widget.PositionChanged += (left, top) =>
@@ -139,7 +139,7 @@ public sealed class FloatingWidgetManager : IDisposable
 
             var icon = target is null ? null : _windowService.GetWindowIconPng(target.Handle);
             widget.TriggerMode = rule.FloatingWidgetTriggerMode;
-            widget.EdgeSnapEnabled = rule.FloatingWidgetEdgeSnapEnabled;
+            widget.EdgeSnapEnabled = true;
             widget.UpdateContent(DisplayName(rule), icon);
         }
     }

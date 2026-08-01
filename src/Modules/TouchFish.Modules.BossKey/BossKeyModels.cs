@@ -69,7 +69,7 @@ public partial class WindowRuleItemViewModel : ObservableObject
         FloatingWidgetTriggerMode = model.FloatingWidgetTriggerMode,
         FloatingWidgetLeft = model.FloatingWidgetLeft,
         FloatingWidgetTop = model.FloatingWidgetTop,
-        FloatingWidgetEdgeSnapEnabled = model.FloatingWidgetEdgeSnapEnabled
+        FloatingWidgetEdgeSnapEnabled = true
     };
 
     public WindowRule ToModel() => new()
@@ -88,7 +88,7 @@ public partial class WindowRuleItemViewModel : ObservableObject
         FloatingWidgetTriggerMode = FloatingWidgetTriggerMode,
         FloatingWidgetLeft = FloatingWidgetLeft,
         FloatingWidgetTop = FloatingWidgetTop,
-        FloatingWidgetEdgeSnapEnabled = FloatingWidgetEdgeSnapEnabled
+        FloatingWidgetEdgeSnapEnabled = true
     };
 
     private static string? NullIfEmpty(string? value) =>

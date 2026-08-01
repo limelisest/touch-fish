@@ -21,6 +21,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private readonly Dictionary<nint, DateTimeOffset> _widgetEntryGraceUntil = [];
     private readonly Dictionary<nint, DateTimeOffset> _widgetActivationOriginUntil = [];
     private readonly DispatcherTimer _autoMinimizeTimer;
+    private readonly DispatcherTimer _autoSaveTimer;
     private DateTimeOffset _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
     private nint _lastHoveredWindowHandle;
     private WindowDescriptor? _lastHoveredWindow;
@@ -49,6 +50,15 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             Interval = TimeSpan.FromMilliseconds(100)
         };
         _autoMinimizeTimer.Tick += OnAutoMinimizeTick;
+        _autoSaveTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(500)
+        };
+        _autoSaveTimer.Tick += async (_, _) =>
+        {
+            _autoSaveTimer.Stop();
+            await SaveFloatingSettingsAsync();
+        };
     }
 
     public ObservableCollection<WindowRuleItemViewModel> Windows { get; } = [];
@@ -78,7 +88,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         // windows reject shell property access; matching runs on demand instead.
         StatusText = Windows.Count == 0
             ? "请先添加需要最小化的窗口。"
-            : $"已载入 {Windows.Count} 条窗口规则；点击刷新可检查状态。";
+            : $"已载入 {Windows.Count} 条窗口规则。";
         _autoMinimizeTimer.Start();
     }
 
@@ -504,24 +514,34 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
     private void OnWindowRulePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is
+        var autoMinimizeChanged = e.PropertyName is
             nameof(WindowRuleItemViewModel.AutoMinimizeEnabled) or
-            nameof(WindowRuleItemViewModel.AutoMinimizeSeconds))
-        {
-            _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
-            return;
-        }
-
-        if (e.PropertyName is not (
+            nameof(WindowRuleItemViewModel.AutoMinimizeSeconds);
+        var floatingWidgetChanged = e.PropertyName is
             nameof(WindowRuleItemViewModel.FloatingWidgetEnabled) or
             nameof(WindowRuleItemViewModel.FloatingWidgetTriggerMode) or
-            nameof(WindowRuleItemViewModel.FloatingWidgetEdgeSnapEnabled)))
+            nameof(WindowRuleItemViewModel.FloatingWidgetEdgeSnapEnabled);
+        var editableValueChanged = e.PropertyName is
+            nameof(WindowRuleItemViewModel.Name) or
+            nameof(WindowRuleItemViewModel.TitleContains) ||
+            autoMinimizeChanged || floatingWidgetChanged;
+        if (!editableValueChanged)
         {
             return;
         }
 
-        SyncFloatingWidgets();
-        _ = SaveFloatingSettingsAsync();
+        if (autoMinimizeChanged)
+        {
+            _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
+        }
+
+        if (floatingWidgetChanged)
+        {
+            SyncFloatingWidgets();
+        }
+
+        _autoSaveTimer.Stop();
+        _autoSaveTimer.Start();
     }
 
     private async Task SaveFloatingSettingsAsync()
@@ -641,6 +661,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
         _autoMinimizeTimer.Stop();
         _autoMinimizeTimer.Tick -= OnAutoMinimizeTick;
+        _autoSaveTimer.Stop();
         _floatingWidgetManager.TargetActivatedFromWidget -= OnTargetActivatedFromWidget;
         _hotkeyAutoMinimizeSuppressed.Clear();
         _widgetEntryGraceUntil.Clear();
