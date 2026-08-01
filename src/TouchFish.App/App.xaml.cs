@@ -39,6 +39,7 @@ public partial class App : System.Windows.Application
 
         try
         {
+            PrepareLogDirectory();
             _themeService = new SystemThemeService(this);
             _themeService.Start();
 
@@ -129,10 +130,7 @@ public partial class App : System.Windows.Application
     {
         try
         {
-            var directory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "TouchFish",
-                "logs");
+            var directory = GetLogDirectory();
             Directory.CreateDirectory(directory);
             var path = Path.Combine(directory, $"crash-{DateTime.Now:yyyyMMdd-HHmmss}.log");
             var content = new StringBuilder()
@@ -149,7 +147,54 @@ public partial class App : System.Windows.Application
         }
         catch
         {
-            return "%LocalAppData%\\TouchFish\\logs";
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "LimeLisest",
+                "TouchFish",
+                "log");
+        }
+    }
+
+    private static string GetLogDirectory() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        "LimeLisest",
+        "TouchFish",
+        "log");
+
+    private static void PrepareLogDirectory()
+    {
+        var logDirectory = GetLogDirectory();
+        try
+        {
+            Directory.CreateDirectory(logDirectory);
+            var legacyDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "TouchFish",
+                "logs");
+            if (!Directory.Exists(legacyDirectory))
+            {
+                return;
+            }
+
+            foreach (var legacyLog in Directory.EnumerateFiles(legacyDirectory, "*.log"))
+            {
+                try
+                {
+                    var destination = Path.Combine(logDirectory, Path.GetFileName(legacyLog));
+                    if (!File.Exists(destination))
+                    {
+                        File.Move(legacyLog, destination);
+                    }
+                }
+                catch
+                {
+                    // A locked legacy log can remain in place without blocking startup.
+                }
+            }
+        }
+        catch
+        {
+            // Logging must never prevent TouchFish from starting.
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Threading;
 using TouchFish.Contracts;
 using TouchFish.UI.FloatingWidgets;
 
@@ -11,12 +12,21 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     private ReaderWindow? _readerWindow;
     private FloatingWidgetWindow? _widget;
     private ReaderBookItemViewModel? _activeBook;
+    private readonly DispatcherTimer _autoHideTimer;
+    private DateTimeOffset? _entryGraceUntil;
+    private DateTimeOffset? _cursorLeftAt;
+    private bool _autoHideActive;
     private bool _isShuttingDown;
 
     public ReaderWindowManager(ReaderLibraryService library, IToolWindowRegistry registry)
     {
         _library = library;
         _registry = registry;
+        _autoHideTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+        _autoHideTimer.Tick += OnAutoHideTimerTick;
         registry.Register(this);
     }
 
@@ -35,6 +45,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
 
         if (_activeBook?.Id != book?.Id)
         {
+            StopAutoHide();
             _widget?.Close();
             _widget = null;
             if (_readerWindow?.IsVisible == true)
@@ -47,13 +58,17 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         _activeBook = book;
         if (book is null && _readerWindow?.IsVisible == true)
         {
+            StopAutoHide();
             _readerWindow.Hide();
         }
 
         SyncFloatingWidget();
     }
 
-    public async Task OpenAsync(ReaderBookItemViewModel book, int chapterIndex)
+    public Task OpenAsync(ReaderBookItemViewModel book, int chapterIndex) =>
+        OpenAsync(book, chapterIndex, fromWidget: false);
+
+    private async Task OpenAsync(ReaderBookItemViewModel book, int chapterIndex, bool fromWidget)
     {
         if (_isShuttingDown)
         {
@@ -66,6 +81,14 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         window.Topmost = book.ReaderWindowTopmost;
         await window.ShowBookAsync(book.Model, chapterIndex);
         SyncFloatingWidget();
+        if (fromWidget)
+        {
+            StartAutoHide();
+        }
+        else
+        {
+            StopAutoHide();
+        }
     }
 
     public void SyncFloatingWidget()
@@ -91,6 +114,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
 
         if (!book.FloatingWidgetEnabled)
         {
+            StopAutoHide();
             _widget?.Close();
             _widget = null;
             return;
@@ -143,7 +167,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     {
         try
         {
-            await OpenAsync(book, book.Model.CurrentChapterIndex);
+            await OpenAsync(book, book.Model.CurrentChapterIndex, fromWidget: true);
         }
         catch
         {
@@ -164,6 +188,55 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         return _readerWindow;
     }
 
+    private void StartAutoHide()
+    {
+        _autoHideActive = true;
+        _entryGraceUntil = DateTimeOffset.UtcNow.AddSeconds(1);
+        _cursorLeftAt = null;
+        _autoHideTimer.Start();
+    }
+
+    private void StopAutoHide()
+    {
+        _autoHideActive = false;
+        _entryGraceUntil = null;
+        _cursorLeftAt = null;
+        _autoHideTimer.Stop();
+    }
+
+    private void OnAutoHideTimerTick(object? sender, EventArgs e)
+    {
+        if (!_autoHideActive || _isShuttingDown || _readerWindow?.IsVisible != true || _activeBook is null)
+        {
+            StopAutoHide();
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        if (_readerWindow.IsCursorInside())
+        {
+            _entryGraceUntil = null;
+            _cursorLeftAt = null;
+            return;
+        }
+
+        if (_entryGraceUntil is not null && now < _entryGraceUntil.Value)
+        {
+            return;
+        }
+
+        _cursorLeftAt ??= now;
+        var seconds = Math.Clamp(_activeBook.ReaderAutoHideSeconds, 0, 86400);
+        if (!ReaderAutoHidePolicy.ShouldHide(_entryGraceUntil, _cursorLeftAt, seconds, now))
+        {
+            return;
+        }
+
+        StopAutoHide();
+        _ = _readerWindow.SaveStateAsync();
+        _readerWindow.Hide();
+    }
+
     public bool Minimize()
     {
         if (_readerWindow is null || !_readerWindow.IsVisible)
@@ -171,6 +244,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
             return false;
         }
 
+        StopAutoHide();
         _readerWindow.WindowState = WindowState.Minimized;
         return true;
     }
@@ -207,6 +281,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         }
 
         _isShuttingDown = true;
+        StopAutoHide();
         _readerWindow?.PrepareForShutdown();
         var widget = _widget;
         _widget = null;

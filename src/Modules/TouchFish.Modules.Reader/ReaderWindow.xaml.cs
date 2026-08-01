@@ -247,6 +247,20 @@ public partial class ReaderWindow : Window
         return false;
     }
 
+    public bool IsCursorInside()
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == nint.Zero ||
+            !NativeMethods.GetCursorPos(out var point) ||
+            !NativeMethods.GetWindowRect(handle, out var rect))
+        {
+            return false;
+        }
+
+        return point.X >= rect.Left && point.X < rect.Right &&
+               point.Y >= rect.Top && point.Y < rect.Bottom;
+    }
+
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
         FloatingWindowStyles.HideFromAltTab(this);

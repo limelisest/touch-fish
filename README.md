@@ -45,6 +45,7 @@ dotnet run --project src/TouchFish.App
 %LocalAppData%\TouchFish\modules\boss-key\settings.v1.json
 %LocalAppData%\TouchFish\appsettings.json
 文档\LimeLisest\TouchFish\books
+文档\LimeLisest\TouchFish\log
 ```
 
 ## 项目边界

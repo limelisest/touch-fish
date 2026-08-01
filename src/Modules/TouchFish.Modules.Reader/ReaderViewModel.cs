@@ -244,6 +244,7 @@ public partial class ReaderViewModel(
             nameof(ReaderBookItemViewModel.FloatingWidgetTriggerMode) or
             nameof(ReaderBookItemViewModel.FloatingWidgetEdgeSnapEnabled) or
             nameof(ReaderBookItemViewModel.ReaderWindowTopmost) or
+            nameof(ReaderBookItemViewModel.ReaderAutoHideSeconds) or
             nameof(ReaderBookItemViewModel.ReaderFontFamily) or
             nameof(ReaderBookItemViewModel.ReaderFontSize) or
             nameof(ReaderBookItemViewModel.ReaderWindowOpacity)))
