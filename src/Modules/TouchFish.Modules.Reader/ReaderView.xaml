@@ -119,7 +119,7 @@
                         <TextBlock Margin="0,10,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
                                    TextWrapping="Wrap"
                                    Text="从小悬浮窗进入阅读窗口时保留 1 秒过渡保护；光标进入后再离开按上述时间回收，0 秒表示立即隐藏。两种窗口各自保存位置。" />
-                        <CheckBox Margin="0,12,0,0" Content="拖到屏幕边缘时自动吸附"
+                        <CheckBox Margin="0,12,0,0" Content="拖到屏幕边缘或其他悬浮窗时自动吸附并对齐"
                                   IsChecked="{Binding SelectedBook.FloatingWidgetEdgeSnapEnabled, Mode=TwoWay}" />
 
                         <Button Margin="0,18,0,0" Padding="12,8" Content="保存阅读设置"

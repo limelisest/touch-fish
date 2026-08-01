@@ -16,8 +16,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private readonly IBossKeySettingsStore _settingsStore;
     private readonly WindowRuleMatcher _matcher;
     private readonly FloatingWidgetManager _floatingWidgetManager;
-    private readonly IToolWindowRegistry _toolWindowRegistry;
     private readonly Dictionary<nint, AutoMinimizeState> _autoMinimizeStates = [];
+    private readonly HashSet<nint> _hotkeyAutoMinimizeSuppressed = [];
     private readonly Dictionary<nint, DateTimeOffset> _widgetEntryGraceUntil = [];
     private readonly DispatcherTimer _autoMinimizeTimer;
     private DateTimeOffset _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
@@ -32,8 +32,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         IWindowPickerService windowPickerService,
         IBossKeySettingsStore settingsStore,
         WindowRuleMatcher matcher,
-        FloatingWidgetManager floatingWidgetManager,
-        IToolWindowRegistry toolWindowRegistry)
+        FloatingWidgetManager floatingWidgetManager)
     {
         _windowService = windowService;
         _hotkeyService = hotkeyService;
@@ -42,7 +41,6 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         _matcher = matcher;
         _floatingWidgetManager = floatingWidgetManager;
         _floatingWidgetManager.TargetActivatedFromWidget += OnTargetActivatedFromWidget;
-        _toolWindowRegistry = toolWindowRegistry;
 
         _autoMinimizeTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
@@ -328,6 +326,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             if (!_windowService.IsWindow(handle))
             {
                 _autoMinimizeStates.Remove(handle);
+                _hotkeyAutoMinimizeSuppressed.Remove(handle);
                 _widgetEntryGraceUntil.Remove(handle);
                 continue;
             }
@@ -344,9 +343,21 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 continue;
             }
 
-            if (windowUnderCursor != nint.Zero &&
-                (_windowService.IsWindowRelated(handle, windowUnderCursor) ||
-                 BelongsToRuleProcess(state.Rule, hoveredWindow)))
+            var cursorIsInsideTarget = windowUnderCursor != nint.Zero &&
+                                       (_windowService.IsWindowRelated(handle, windowUnderCursor) ||
+                                        BelongsToRuleProcess(state.Rule, hoveredWindow));
+            var hotkeySuppressionActive = _hotkeyAutoMinimizeSuppressed.Contains(handle);
+            if (AutoMinimizePolicy.IsHotkeyRestoreSuppressed(hotkeySuppressionActive, cursorIsInsideTarget))
+            {
+                continue;
+            }
+
+            if (hotkeySuppressionActive)
+            {
+                _hotkeyAutoMinimizeSuppressed.Remove(handle);
+            }
+
+            if (cursorIsInsideTarget)
             {
                 state.LostFocusAt = null;
                 _widgetEntryGraceUntil.Remove(handle);
@@ -379,6 +390,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
     private void OnTargetActivatedFromWidget(nint windowHandle)
     {
+        _hotkeyAutoMinimizeSuppressed.Remove(windowHandle);
         _widgetEntryGraceUntil[windowHandle] = DateTimeOffset.UtcNow.AddSeconds(1);
     }
 
@@ -429,6 +441,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         foreach (var staleHandle in _autoMinimizeStates.Keys.Where(handle => !activeHandles.Contains(handle)).ToArray())
         {
             _autoMinimizeStates.Remove(staleHandle);
+            _hotkeyAutoMinimizeSuppressed.Remove(staleHandle);
+            _widgetEntryGraceUntil.Remove(staleHandle);
         }
     }
 
@@ -507,10 +521,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             .OrderBy(target => target.Priority)
             .ToArray();
 
-        var managedWindows = _toolWindowRegistry.Windows.Where(window => window.IsAvailable).ToArray();
         var minimizedStates = targets
             .Select(target => _windowService.IsMinimized(target.Window.Handle))
-            .Concat(managedWindows.Select(window => window.IsMinimizedOrHidden))
             .ToArray();
         var action = BossKeyTogglePolicy.Decide(minimizedStates);
         if (action == BossKeyToggleAction.None)
@@ -524,14 +536,6 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             var restored = 0;
             nint foregroundWindow = nint.Zero;
 
-            foreach (var managedWindow in managedWindows)
-            {
-                if (managedWindow.Restore())
-                {
-                    restored++;
-                }
-            }
-
             // Restore bottom-to-top so the first list item is shown last.
             foreach (var target in targets.OrderByDescending(target => target.Priority))
             {
@@ -539,6 +543,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 {
                     restored++;
                     foregroundWindow = target.Window.Handle;
+                    _hotkeyAutoMinimizeSuppressed.Add(target.Window.Handle);
+                    _widgetEntryGraceUntil.Remove(target.Window.Handle);
                 }
             }
 
@@ -560,12 +566,10 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 }
             }
 
-            foreach (var managedWindow in managedWindows)
+            foreach (var target in targets)
             {
-                if (managedWindow.Minimize())
-                {
-                    minimized++;
-                }
+                _hotkeyAutoMinimizeSuppressed.Remove(target.Window.Handle);
+                _widgetEntryGraceUntil.Remove(target.Window.Handle);
             }
 
             StatusText = $"已统一最小化 {minimized} 个窗口。";
@@ -592,6 +596,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         _autoMinimizeTimer.Stop();
         _autoMinimizeTimer.Tick -= OnAutoMinimizeTick;
         _floatingWidgetManager.TargetActivatedFromWidget -= OnTargetActivatedFromWidget;
+        _hotkeyAutoMinimizeSuppressed.Clear();
         _widgetEntryGraceUntil.Clear();
     }
 

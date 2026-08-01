@@ -14,6 +14,8 @@ namespace TouchFish.UI.FloatingWidgets;
 public sealed class FloatingWidgetWindow : Window
 {
     private const uint MonitorDefaultToNearest = 2;
+    private static readonly object InstancesLock = new();
+    private static readonly List<WeakReference<FloatingWidgetWindow>> Instances = [];
     private readonly Image _icon;
     private readonly TextBlock _title;
     private readonly DispatcherTimer _hoverTimer;
@@ -73,6 +75,11 @@ public sealed class FloatingWidgetWindow : Window
         border.SetResourceReference(Border.BorderBrushProperty, "BorderBrush");
         Content = border;
 
+        lock (InstancesLock)
+        {
+            Instances.Add(new WeakReference<FloatingWidgetWindow>(this));
+        }
+
         _hoverTimer = new DispatcherTimer(DispatcherPriority.Input)
         {
             Interval = TimeSpan.FromMilliseconds(300)
@@ -85,7 +92,11 @@ public sealed class FloatingWidgetWindow : Window
         PreviewMouseLeftButtonUp += OnMouseLeftButtonUp;
         MouseEnter += OnMouseEnter;
         MouseLeave += OnMouseLeave;
-        Closed += (_, _) => _hoverTimer.Stop();
+        Closed += (_, _) =>
+        {
+            _hoverTimer.Stop();
+            UnregisterInstance(this);
+        };
     }
 
     public FloatingWidgetTriggerMode TriggerMode { get; set; }
@@ -177,6 +188,7 @@ public sealed class FloatingWidgetWindow : Window
         {
             if (EdgeSnapEnabled)
             {
+                SnapToPeerWidgets();
                 SnapToMonitorEdge();
             }
 
@@ -215,6 +227,61 @@ public sealed class FloatingWidgetWindow : Window
         if (TriggerMode == FloatingWidgetTriggerMode.PointerHover && IsMouseOver)
         {
             ActivationRequested?.Invoke();
+        }
+    }
+
+    private void SnapToPeerWidgets()
+    {
+        var peers = GetVisiblePeerBounds(this);
+        if (peers.Count == 0)
+        {
+            return;
+        }
+
+        var snapped = FloatingWidgetSnapPolicy.SnapToPeers(
+            new FloatingWidgetBounds(Left, Top, ActualWidth > 0 ? ActualWidth : Width, ActualHeight > 0 ? ActualHeight : Height),
+            peers);
+        SetInitialPosition(snapped.Left, snapped.Top);
+    }
+
+    private static IReadOnlyList<FloatingWidgetBounds> GetVisiblePeerBounds(FloatingWidgetWindow current)
+    {
+        var peers = new List<FloatingWidgetBounds>();
+        lock (InstancesLock)
+        {
+            for (var index = Instances.Count - 1; index >= 0; index--)
+            {
+                if (!Instances[index].TryGetTarget(out var window))
+                {
+                    Instances.RemoveAt(index);
+                    continue;
+                }
+
+                if (!ReferenceEquals(window, current) && window.IsVisible)
+                {
+                    peers.Add(new FloatingWidgetBounds(
+                        window.Left,
+                        window.Top,
+                        window.ActualWidth > 0 ? window.ActualWidth : window.Width,
+                        window.ActualHeight > 0 ? window.ActualHeight : window.Height));
+                }
+            }
+        }
+
+        return peers;
+    }
+
+    private static void UnregisterInstance(FloatingWidgetWindow window)
+    {
+        lock (InstancesLock)
+        {
+            for (var index = Instances.Count - 1; index >= 0; index--)
+            {
+                if (!Instances[index].TryGetTarget(out var candidate) || ReferenceEquals(candidate, window))
+                {
+                    Instances.RemoveAt(index);
+                }
+            }
         }
     }
 

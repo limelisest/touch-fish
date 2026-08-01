@@ -14,4 +14,7 @@ public static class AutoMinimizePolicy
 
     public static bool IsEntryGraceActive(DateTimeOffset? graceUntil, DateTimeOffset now) =>
         graceUntil is not null && now < graceUntil.Value;
+
+    public static bool IsHotkeyRestoreSuppressed(bool suppressionActive, bool cursorInsideTarget) =>
+        suppressionActive && !cursorInsideTarget;
 }

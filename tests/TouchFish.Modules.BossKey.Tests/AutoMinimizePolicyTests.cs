@@ -33,6 +33,14 @@ public sealed class AutoMinimizePolicyTests
     }
 
     [Fact]
+    public void HotkeyRestoreStaysSuppressedUntilCursorEntersTarget()
+    {
+        Assert.True(AutoMinimizePolicy.IsHotkeyRestoreSuppressed(true, false));
+        Assert.False(AutoMinimizePolicy.IsHotkeyRestoreSuppressed(true, true));
+        Assert.False(AutoMinimizePolicy.IsHotkeyRestoreSuppressed(false, false));
+    }
+
+    [Fact]
     public void DoesNotMinimizeBeforeDelayOrWithoutLostFocusTimestamp()
     {
         var lostFocusAt = Now.AddSeconds(-9);
