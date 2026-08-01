@@ -7,6 +7,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using TouchFish.UI.FloatingWidgets;
+using FontFamily = System.Windows.Media.FontFamily;
 
 namespace TouchFish.Modules.Reader;
 
@@ -18,6 +19,11 @@ public partial class ReaderWindow : Window
     private ReaderBook? _book;
     private Guid? _loadedBookId;
     private int _loadedChapterIndex = -1;
+    private string _currentText = string.Empty;
+    private FontFamily _readerFontFamily = new("Microsoft YaHei UI");
+    private double _readerFontSize = 16;
+    private double _readerLineSpacing = 1.65;
+    private double _readerParagraphSpacing = 8;
     private HwndSource? _windowSource;
     private bool _allowClose;
     private bool _isClosed;
@@ -63,7 +69,7 @@ public partial class ReaderWindow : Window
         var safeIndex = book.Chapters.Count == 0 ? 0 : Math.Clamp(chapterIndex, 0, book.Chapters.Count - 1);
         var contentAlreadyLoaded = _loadedBookId == book.Id &&
                                    _loadedChapterIndex == safeIndex &&
-                                   !string.IsNullOrEmpty(ReaderText.Text);
+                                   !string.IsNullOrEmpty(_currentText);
         _book = book;
         ApplyAppearance(book);
         Width = Math.Max(MinWidth, book.ReaderWindowWidth);
@@ -89,7 +95,7 @@ public partial class ReaderWindow : Window
         Activate();
         if (!contentAlreadyLoaded)
         {
-            ReaderText.Text = "正在加载……";
+            SetReaderText("正在加载……");
             ReaderScroll.ScrollToHome();
             await LoadChapterAsync(safeIndex, restorePosition: true);
         }
@@ -109,7 +115,7 @@ public partial class ReaderWindow : Window
             SaveReadingOffset();
             var safeIndex = Math.Clamp(chapterIndex, 0, _book.Chapters.Count - 1);
             _book.CurrentChapterIndex = safeIndex;
-            ReaderText.Text = await _library.ReadChapterAsync(_book, safeIndex);
+            SetReaderText(await _library.ReadChapterAsync(_book, safeIndex));
             _loadedBookId = _book.Id;
             _loadedChapterIndex = safeIndex;
             ReaderScroll.ScrollToHome();
@@ -119,9 +125,9 @@ public partial class ReaderWindow : Window
                 if (restorePosition)
                 {
                     var progress = Math.Clamp(_book.CurrentScrollProgress, 0, 1);
-                    if (progress <= 0 && _book.CurrentCharacterOffset > 0 && ReaderText.Text.Length > 0)
+                    if (progress <= 0 && _book.CurrentCharacterOffset > 0 && _currentText.Length > 0)
                     {
-                        progress = Math.Clamp((double)_book.CurrentCharacterOffset / ReaderText.Text.Length, 0, 1);
+                        progress = Math.Clamp((double)_book.CurrentCharacterOffset / _currentText.Length, 0, 1);
                     }
 
                     ReaderScroll.ScrollToVerticalOffset(progress * ReaderScroll.ScrollableHeight);
@@ -151,21 +157,65 @@ public partial class ReaderWindow : Window
 
     public void ApplyAppearance(ReaderBook book)
     {
-        var fontSize = Math.Clamp(book.ReaderFontSize, 10, 48);
+        _readerFontSize = Math.Clamp(book.ReaderFontSize, 10, 48);
+        _readerLineSpacing = Math.Clamp(book.ReaderLineSpacing, 1, 3);
+        _readerParagraphSpacing = Math.Clamp(book.ReaderParagraphSpacing, 0, 48);
         try
         {
-            ReaderText.FontFamily = new FontFamily(book.ReaderFontFamily);
+            _readerFontFamily = new FontFamily(book.ReaderFontFamily);
         }
         catch
         {
-            ReaderText.FontFamily = new FontFamily("Microsoft YaHei UI");
+            _readerFontFamily = new FontFamily("Microsoft YaHei UI");
         }
 
-        ReaderText.FontSize = fontSize;
-        ReaderText.LineHeight = fontSize * 1.65;
+        ApplyParagraphAppearance();
         var opacity = Math.Clamp(book.ReaderWindowOpacity, 0.25, 1);
         Opacity = opacity;
         OpacitySlider.Value = opacity;
+    }
+
+    private void SetReaderText(string text)
+    {
+        _currentText = text;
+        ReaderParagraphs.Children.Clear();
+        foreach (var line in text.Replace("\r", string.Empty).Split('\n'))
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                ReaderParagraphs.Children.Add(new Border
+                {
+                    Height = _readerFontSize * _readerLineSpacing
+                });
+                continue;
+            }
+
+            ReaderParagraphs.Children.Add(new TextBlock
+            {
+                Text = line.TrimEnd(),
+                TextWrapping = TextWrapping.Wrap
+            });
+        }
+
+        ApplyParagraphAppearance();
+    }
+
+    private void ApplyParagraphAppearance()
+    {
+        foreach (var child in ReaderParagraphs.Children)
+        {
+            if (child is TextBlock paragraph)
+            {
+                paragraph.FontFamily = _readerFontFamily;
+                paragraph.FontSize = _readerFontSize;
+                paragraph.LineHeight = _readerFontSize * _readerLineSpacing;
+                paragraph.Margin = new Thickness(0, 0, 0, _readerParagraphSpacing);
+            }
+            else if (child is Border spacer)
+            {
+                spacer.Height = _readerFontSize * _readerLineSpacing + _readerParagraphSpacing;
+            }
+        }
     }
 
     private void OpacitySlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -236,7 +286,8 @@ public partial class ReaderWindow : Window
     {
         while (element is not null)
         {
-            if (element is ButtonBase or Slider or ScrollBar or Thumb)
+            if (element is System.Windows.Controls.Primitives.ButtonBase or Slider or
+                System.Windows.Controls.Primitives.ScrollBar or Thumb)
             {
                 return true;
             }
@@ -305,7 +356,7 @@ public partial class ReaderWindow : Window
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
-        if (_allowClose || Application.Current?.Dispatcher.HasShutdownStarted == true)
+        if (_allowClose || System.Windows.Application.Current?.Dispatcher.HasShutdownStarted == true)
         {
             return;
         }
@@ -331,7 +382,7 @@ public partial class ReaderWindow : Window
 
     private void SaveReadingOffset()
     {
-        if (_book is null || string.IsNullOrEmpty(ReaderText.Text) || ReaderText.Text == "正在加载……")
+        if (_book is null || string.IsNullOrEmpty(_currentText) || _currentText == "正在加载……")
         {
             return;
         }
@@ -340,7 +391,7 @@ public partial class ReaderWindow : Window
             ? Math.Clamp(ReaderScroll.VerticalOffset / ReaderScroll.ScrollableHeight, 0, 1)
             : 0;
         _book.CurrentScrollProgress = progress;
-        _book.CurrentCharacterOffset = (int)Math.Round(ReaderText.Text.Length * progress);
+        _book.CurrentCharacterOffset = (int)Math.Round(_currentText.Length * progress);
     }
 
     public async Task SaveStateAsync()

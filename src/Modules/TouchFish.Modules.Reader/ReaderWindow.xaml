@@ -9,9 +9,7 @@
             <ScrollViewer x:Name="ReaderScroll" Padding="16,16,16,58"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
-                <TextBlock x:Name="ReaderText" TextWrapping="Wrap"
-                           FontSize="16" LineHeight="26"
-                           IsHitTestVisible="False" />
+                <StackPanel x:Name="ReaderParagraphs" IsHitTestVisible="False" />
             </ScrollViewer>
 
             <Border VerticalAlignment="Bottom" Height="48" Margin="10"

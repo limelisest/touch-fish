@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -17,10 +16,6 @@ public partial class ReaderViewModel(
     private bool _chapterEventAttached;
 
     public ObservableCollection<ReaderBookItemViewModel> Books { get; } = [];
-    public IReadOnlyList<string> AvailableFonts { get; } = Fonts.SystemFontFamilies
-        .Select(font => font.Source)
-        .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
-        .ToArray();
     public ObservableCollection<ReaderChapter> Chapters { get; } = [];
     public string LibraryPath => library.LibraryRoot;
 
@@ -110,7 +105,7 @@ public partial class ReaderViewModel(
     [RelayCommand]
     private async Task ImportBookAsync()
     {
-        var dialog = new OpenFileDialog
+        var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Title = "导入 TXT 小说",
             Filter = "TXT 小说 (*.txt)|*.txt",
@@ -194,6 +189,41 @@ public partial class ReaderViewModel(
     }
 
     [RelayCommand]
+    private void ChooseFont()
+    {
+        if (SelectedBook is null)
+        {
+            return;
+        }
+
+        using var dialog = new System.Windows.Forms.FontDialog
+        {
+            FontMustExist = true,
+            ShowColor = false,
+            ShowEffects = false,
+            AllowScriptChange = true
+        };
+        try
+        {
+            var pointSize = (float)Math.Clamp(SelectedBook.ReaderFontSize * 72d / 96d, 6, 72);
+            dialog.Font = new System.Drawing.Font(SelectedBook.ReaderFontFamily, pointSize);
+        }
+        catch
+        {
+            dialog.Font = new System.Drawing.Font("Microsoft YaHei UI", 12);
+        }
+
+        if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+        {
+            return;
+        }
+
+        SelectedBook.ReaderFontFamily = dialog.Font.FontFamily.Name;
+        SelectedBook.ReaderFontSize = Math.Clamp(dialog.Font.SizeInPoints * 96d / 72d, 10, 48);
+        StatusText = $"已选择字体：{SelectedBook.ReaderFontFamily}。";
+    }
+
+    [RelayCommand]
     private async Task SaveBookSettingsAsync()
     {
         if (SelectedBook is null)
@@ -240,6 +270,7 @@ public partial class ReaderViewModel(
     private void OnBookPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (sender is not ReaderBookItemViewModel book || e.PropertyName is not (
+            nameof(ReaderBookItemViewModel.Title) or
             nameof(ReaderBookItemViewModel.FloatingWidgetEnabled) or
             nameof(ReaderBookItemViewModel.FloatingWidgetTriggerMode) or
             nameof(ReaderBookItemViewModel.FloatingWidgetEdgeSnapEnabled) or
@@ -247,6 +278,8 @@ public partial class ReaderViewModel(
             nameof(ReaderBookItemViewModel.ReaderAutoHideSeconds) or
             nameof(ReaderBookItemViewModel.ReaderFontFamily) or
             nameof(ReaderBookItemViewModel.ReaderFontSize) or
+            nameof(ReaderBookItemViewModel.ReaderLineSpacing) or
+            nameof(ReaderBookItemViewModel.ReaderParagraphSpacing) or
             nameof(ReaderBookItemViewModel.ReaderWindowOpacity)))
         {
             return;

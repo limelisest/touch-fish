@@ -22,6 +22,7 @@ public sealed class FloatingWidgetWindow : Window
     private NativePoint _dragStartCursor;
     private NativePoint _lastCursor;
     private bool _dragging;
+    private bool _pointerPressActive;
 
     public FloatingWidgetWindow()
     {
@@ -140,6 +141,8 @@ public sealed class FloatingWidgetWindow : Window
 
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // Pressing during the hover delay means the user intends to move the widget.
+        _hoverTimer.Stop();
         if (!NativeMethods.GetCursorPos(out _dragStartCursor))
         {
             return;
@@ -147,6 +150,7 @@ public sealed class FloatingWidgetWindow : Window
 
         _lastCursor = _dragStartCursor;
         _dragging = false;
+        _pointerPressActive = true;
         CaptureMouse();
         e.Handled = true;
     }
@@ -200,13 +204,14 @@ public sealed class FloatingWidgetWindow : Window
         }
 
         _dragging = false;
+        _pointerPressActive = false;
         e.Handled = true;
     }
 
     private void OnMouseEnter(object sender, MouseEventArgs e)
     {
         PointerEntered?.Invoke();
-        if (TriggerMode != FloatingWidgetTriggerMode.PointerHover)
+        if (_pointerPressActive || TriggerMode != FloatingWidgetTriggerMode.PointerHover)
         {
             return;
         }
@@ -224,7 +229,7 @@ public sealed class FloatingWidgetWindow : Window
     private void OnHoverTimerTick(object? sender, EventArgs e)
     {
         _hoverTimer.Stop();
-        if (TriggerMode == FloatingWidgetTriggerMode.PointerHover && IsMouseOver)
+        if (!_pointerPressActive && TriggerMode == FloatingWidgetTriggerMode.PointerHover && IsMouseOver)
         {
             ActivationRequested?.Invoke();
         }

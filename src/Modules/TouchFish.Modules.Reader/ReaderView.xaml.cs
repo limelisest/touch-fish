@@ -4,7 +4,7 @@ using System.Windows.Threading;
 
 namespace TouchFish.Modules.Reader;
 
-public partial class ReaderView : UserControl
+public partial class ReaderView : System.Windows.Controls.UserControl
 {
     public ReaderView()
     {

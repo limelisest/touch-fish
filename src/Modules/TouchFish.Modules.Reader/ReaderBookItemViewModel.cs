@@ -7,7 +7,7 @@ public partial class ReaderBookItemViewModel(ReaderBook model) : ObservableObjec
 {
     public ReaderBook Model { get; } = model;
     public Guid Id => Model.Id;
-    public string Title => Model.Title;
+    [ObservableProperty] private string _title = model.Title;
     public IReadOnlyList<ReaderChapter> Chapters => Model.Chapters;
 
     [ObservableProperty] private bool _floatingWidgetEnabled = model.FloatingWidgetEnabled;
@@ -17,6 +17,8 @@ public partial class ReaderBookItemViewModel(ReaderBook model) : ObservableObjec
     [ObservableProperty] private int _readerAutoHideSeconds = model.ReaderAutoHideSeconds;
     [ObservableProperty] private string _readerFontFamily = model.ReaderFontFamily;
     [ObservableProperty] private double _readerFontSize = model.ReaderFontSize;
+    [ObservableProperty] private double _readerLineSpacing = model.ReaderLineSpacing;
+    [ObservableProperty] private double _readerParagraphSpacing = model.ReaderParagraphSpacing;
     [ObservableProperty] private double _readerWindowOpacity = model.ReaderWindowOpacity;
 
     public bool IsClickTrigger
@@ -54,6 +56,11 @@ public partial class ReaderBookItemViewModel(ReaderBook model) : ObservableObjec
 
     public void ApplyToModel()
     {
+        if (!string.IsNullOrWhiteSpace(Title))
+        {
+            Model.Title = Title.Trim();
+        }
+
         Model.FloatingWidgetEnabled = FloatingWidgetEnabled;
         Model.FloatingWidgetTriggerMode = FloatingWidgetTriggerMode;
         Model.FloatingWidgetEdgeSnapEnabled = FloatingWidgetEdgeSnapEnabled;
@@ -61,6 +68,8 @@ public partial class ReaderBookItemViewModel(ReaderBook model) : ObservableObjec
         Model.ReaderAutoHideSeconds = Math.Clamp(ReaderAutoHideSeconds, 0, 86400);
         Model.ReaderFontFamily = string.IsNullOrWhiteSpace(ReaderFontFamily) ? "Microsoft YaHei UI" : ReaderFontFamily;
         Model.ReaderFontSize = Math.Clamp(ReaderFontSize, 10, 48);
+        Model.ReaderLineSpacing = Math.Clamp(ReaderLineSpacing, 1, 3);
+        Model.ReaderParagraphSpacing = Math.Clamp(ReaderParagraphSpacing, 0, 48);
         Model.ReaderWindowOpacity = Math.Clamp(ReaderWindowOpacity, 0.25, 1);
     }
 }

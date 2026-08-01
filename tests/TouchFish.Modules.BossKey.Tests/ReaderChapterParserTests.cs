@@ -71,11 +71,17 @@ public sealed class ReaderChapterParserTests
             var library = new ReaderLibraryService(_parser, libraryPath);
 
             var imported = await library.ImportAsync(sourcePath);
+            imported.Title = "修改后的书名";
+            imported.ReaderLineSpacing = 1.8;
+            imported.ReaderParagraphSpacing = 12;
+            await library.SaveAsync(imported);
             var loaded = Assert.Single(await library.LoadBooksAsync());
             var chapter = await library.ReadChapterAsync(loaded, 1);
             var metadata = await File.ReadAllTextAsync(Path.Combine(libraryPath, imported.Id.ToString("N"), "metadata.json"));
 
-            Assert.Equal("凡人修仙传", imported.Title);
+            Assert.Equal("修改后的书名", loaded.Title);
+            Assert.Equal(1.8, loaded.ReaderLineSpacing);
+            Assert.Equal(12, loaded.ReaderParagraphSpacing);
             Assert.Equal(3, imported.Chapters.Count);
             Assert.Contains("第一章 初入江湖", chapter);
             Assert.DoesNotContain("NaN", metadata, StringComparison.OrdinalIgnoreCase);

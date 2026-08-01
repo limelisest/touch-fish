@@ -4,7 +4,7 @@ namespace TouchFish.Modules.Reader;
 
 public sealed class ReaderBook
 {
-    public int SchemaVersion { get; set; } = 3;
+    public int SchemaVersion { get; set; } = 4;
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Title { get; set; } = string.Empty;
     public string FileName { get; set; } = "book.txt";
@@ -21,6 +21,8 @@ public sealed class ReaderBook
     public int ReaderAutoHideSeconds { get; set; }
     public string ReaderFontFamily { get; set; } = "Microsoft YaHei UI";
     public double ReaderFontSize { get; set; } = 16;
+    public double ReaderLineSpacing { get; set; } = 1.65;
+    public double ReaderParagraphSpacing { get; set; } = 8;
     public double ReaderWindowOpacity { get; set; } = 1;
     public bool FloatingWidgetEnabled { get; set; }
     public FloatingWidgetTriggerMode FloatingWidgetTriggerMode { get; set; } = FloatingWidgetTriggerMode.Click;
