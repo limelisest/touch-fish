@@ -33,11 +33,11 @@ public sealed class AutoMinimizePolicyTests
     }
 
     [Fact]
-    public void HotkeyRestoreStaysSuppressedUntilCursorEntersTarget()
+    public void NonWidgetActivationStaysSuppressedUntilCursorEntersTarget()
     {
-        Assert.True(AutoMinimizePolicy.IsHotkeyRestoreSuppressed(true, false));
-        Assert.False(AutoMinimizePolicy.IsHotkeyRestoreSuppressed(true, true));
-        Assert.False(AutoMinimizePolicy.IsHotkeyRestoreSuppressed(false, false));
+        Assert.True(AutoMinimizePolicy.IsNonWidgetActivationSuppressed(true, false));
+        Assert.False(AutoMinimizePolicy.IsNonWidgetActivationSuppressed(true, true));
+        Assert.False(AutoMinimizePolicy.IsNonWidgetActivationSuppressed(false, false));
     }
 
     [Fact]
