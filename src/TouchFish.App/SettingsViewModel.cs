@@ -2,18 +2,26 @@ using System.ComponentModel;
 using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TouchFish.Contracts;
+using TouchFish.Modules.BossKey;
+using TouchFish.Modules.Reader;
 
 namespace TouchFish.App;
 
 public partial class SettingsViewModel(
     AppSettingsStore settingsStore,
-    StartupTaskService startupTaskService) : ObservableObject
+    StartupTaskService startupTaskService,
+    BossKeyViewModel bossKeyViewModel,
+    ReaderWindowManager readerWindowManager) : ObservableObject
 {
     private bool _savedAutoStartEnabled;
     private bool _savedSilentStartup;
+    private bool _initializing = true;
 
     [ObservableProperty] private bool _autoStartEnabled;
     [ObservableProperty] private bool _silentStartup;
+    [ObservableProperty] private bool _bossKeyFeatureEnabled = true;
+    [ObservableProperty] private bool _readerFeatureEnabled = true;
     [ObservableProperty] private string _statusText = "";
 
     public string Version { get; } = Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "未知";
@@ -25,8 +33,48 @@ public partial class SettingsViewModel(
         var settings = await settingsStore.LoadAsync();
         AutoStartEnabled = settings.AutoStartEnabled;
         SilentStartup = settings.SilentStartup;
+        BossKeyFeatureEnabled = settings.BossKeyFeatureEnabled;
+        ReaderFeatureEnabled = settings.ReaderFeatureEnabled;
         _savedAutoStartEnabled = settings.AutoStartEnabled;
         _savedSilentStartup = settings.SilentStartup;
+        bossKeyViewModel.SetFeatureEnabled(BossKeyFeatureEnabled);
+        readerWindowManager.SetFeatureEnabled(ReaderFeatureEnabled);
+        _initializing = false;
+    }
+
+    partial void OnBossKeyFeatureEnabledChanged(bool value)
+    {
+        if (_initializing) return;
+        bossKeyViewModel.SetFeatureEnabled(value);
+        _ = SaveFeatureTogglesAsync();
+    }
+
+    partial void OnReaderFeatureEnabledChanged(bool value)
+    {
+        if (_initializing) return;
+        readerWindowManager.SetFeatureEnabled(value);
+        _ = SaveFeatureTogglesAsync();
+    }
+
+    private TouchFishAppSettings CreateSettings() => new()
+    {
+        AutoStartEnabled = AutoStartEnabled,
+        SilentStartup = SilentStartup,
+        BossKeyFeatureEnabled = BossKeyFeatureEnabled,
+        ReaderFeatureEnabled = ReaderFeatureEnabled
+    };
+
+    private async Task SaveFeatureTogglesAsync()
+    {
+        try
+        {
+            await settingsStore.SaveAsync(CreateSettings());
+            StatusText = "功能开关已保存。";
+        }
+        catch (Exception exception)
+        {
+            StatusText = $"功能开关保存失败：{exception.Message}";
+        }
     }
 
     [RelayCommand]
@@ -34,11 +82,7 @@ public partial class SettingsViewModel(
     {
         try
         {
-            var settings = new TouchFishAppSettings
-            {
-                AutoStartEnabled = AutoStartEnabled,
-                SilentStartup = SilentStartup
-            };
+            var settings = CreateSettings();
             var startupConfigurationChanged = AutoStartEnabled != _savedAutoStartEnabled ||
                                               AutoStartEnabled && SilentStartup != _savedSilentStartup;
             if (startupConfigurationChanged)

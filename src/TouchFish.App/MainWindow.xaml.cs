@@ -19,6 +19,7 @@ public partial class MainWindow : Window
         SettingsViewModel settingsViewModel)
     {
         _bossKeyViewModel = bossKeyViewModel;
+        DataContext = settingsViewModel;
         InitializeComponent();
         _bossKeyView = new BossKeyView { DataContext = bossKeyViewModel };
         _readerView = new ReaderView { DataContext = readerViewModel };

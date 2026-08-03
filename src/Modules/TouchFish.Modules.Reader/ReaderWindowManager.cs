@@ -17,6 +17,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     private DateTimeOffset? _cursorLeftAt;
     private bool _autoHideActive;
     private bool _isShuttingDown;
+    private bool _featureEnabled = true;
 
     public ReaderWindowManager(ReaderLibraryService library, IToolWindowRegistry registry)
     {
@@ -33,7 +34,8 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     public string Id => "reader.window";
     public event Action<ReaderBook, int>? ChapterChanged;
     public event Action<ReaderBook, double>? OpacityChanged;
-    public bool IsAvailable => _activeBook is not null;
+    public bool FeatureEnabled => _featureEnabled;
+    public bool IsAvailable => _featureEnabled && _activeBook is not null;
     public bool IsMinimizedOrHidden => _readerWindow is null || !_readerWindow.IsVisible || _readerWindow.WindowState == WindowState.Minimized;
 
     public void SetActiveBook(ReaderBookItemViewModel? book)
@@ -65,12 +67,32 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         SyncFloatingWidget();
     }
 
+    public void SetFeatureEnabled(bool enabled)
+    {
+        _featureEnabled = enabled;
+        if (!enabled)
+        {
+            StopAutoHide();
+            _widget?.Close();
+            _widget = null;
+            if (_readerWindow?.IsVisible == true)
+            {
+                _ = _readerWindow.SaveStateAsync();
+                _readerWindow.Hide();
+            }
+
+            return;
+        }
+
+        SyncFloatingWidget();
+    }
+
     public Task OpenAsync(ReaderBookItemViewModel book, int chapterIndex) =>
         OpenAsync(book, chapterIndex, fromWidget: false);
 
     private async Task OpenAsync(ReaderBookItemViewModel book, int chapterIndex, bool fromWidget)
     {
-        if (_isShuttingDown)
+        if (_isShuttingDown || !_featureEnabled)
         {
             return;
         }
@@ -95,6 +117,14 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     {
         if (_isShuttingDown)
         {
+            return;
+        }
+
+        if (!_featureEnabled)
+        {
+            StopAutoHide();
+            _widget?.Close();
+            _widget = null;
             return;
         }
 

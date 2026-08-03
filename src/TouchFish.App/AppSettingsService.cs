@@ -1,17 +1,13 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using TouchFish.Contracts;
 
 namespace TouchFish.App;
 
-public sealed class TouchFishAppSettings
-{
-    public bool AutoStartEnabled { get; set; }
-    public bool SilentStartup { get; set; }
-}
-
 public sealed class AppSettingsStore
 {
+    private readonly SemaphoreSlim _saveLock = new(1, 1);
     private readonly string _path = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "TouchFish",
@@ -40,14 +36,22 @@ public sealed class AppSettingsStore
 
     public async Task SaveAsync(TouchFishAppSettings settings)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        var temporary = $"{_path}.tmp";
-        await using (var stream = File.Create(temporary))
+        await _saveLock.WaitAsync();
+        try
         {
-            await JsonSerializer.SerializeAsync(stream, settings, Options);
-        }
+            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+            var temporary = $"{_path}.tmp";
+            await using (var stream = File.Create(temporary))
+            {
+                await JsonSerializer.SerializeAsync(stream, settings, Options);
+            }
 
-        File.Move(temporary, _path, true);
+            File.Move(temporary, _path, true);
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
     }
 }
 

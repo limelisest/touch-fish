@@ -62,9 +62,9 @@ public partial class App : System.Windows.Application
             var readerViewModel = _host.Services.GetRequiredService<ReaderViewModel>();
             _readerWindowManager = _host.Services.GetRequiredService<ReaderWindowManager>();
             var settingsViewModel = _host.Services.GetRequiredService<SettingsViewModel>();
+            await settingsViewModel.InitializeAsync();
             await bossKeyViewModel.InitializeAsync();
             await readerViewModel.InitializeAsync();
-            await settingsViewModel.InitializeAsync();
 
             var window = _host.Services.GetRequiredService<MainWindow>();
             MainWindow = window;

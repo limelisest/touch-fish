@@ -143,6 +143,12 @@ public partial class ReaderViewModel(
     [RelayCommand]
     private async Task OpenReaderAsync()
     {
+        if (!windowManager.FeatureEnabled)
+        {
+            StatusText = "看书功能已关闭，请先通过侧边栏开关启用。";
+            return;
+        }
+
         if (SelectedBook is null)
         {
             StatusText = "请先选择一本书。";

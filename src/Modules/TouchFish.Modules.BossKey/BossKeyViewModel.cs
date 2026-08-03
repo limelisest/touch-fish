@@ -28,6 +28,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private nint _lastForegroundWindowHandle;
     private HotkeyGesture _hotkey = new(0x4D, HotkeyModifiers.Control | HotkeyModifiers.Alt, "M");
     private bool _hotkeyAttached;
+    private bool _initialized;
+    private bool _featureEnabled = true;
 
     public BossKeyViewModel(
         IWindowService windowService,
@@ -82,21 +84,63 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             Windows.Add(item);
         }
 
+        _initialized = true;
         SyncFloatingWidgets();
 
         // Do not inspect every foreign window during startup. Some protected
         // windows reject shell property access; matching runs on demand instead.
-        StatusText = Windows.Count == 0
-            ? "请先添加需要最小化的窗口。"
-            : $"已载入 {Windows.Count} 条窗口规则。";
-        _autoMinimizeTimer.Start();
+        StatusText = !_featureEnabled
+            ? "老板键功能已关闭。"
+            : Windows.Count == 0
+                ? "请先添加需要最小化的窗口。"
+                : $"已载入 {Windows.Count} 条窗口规则。";
+        if (_featureEnabled)
+        {
+            _autoMinimizeTimer.Start();
+        }
     }
 
     public void AttachHotkey(nint mainWindowHandle)
     {
         _hotkeyService.Attach(mainWindowHandle);
         _hotkeyAttached = true;
-        RegisterCurrentHotkey();
+        if (_featureEnabled)
+        {
+            RegisterCurrentHotkey();
+        }
+    }
+
+    public void SetFeatureEnabled(bool enabled)
+    {
+        _featureEnabled = enabled;
+        if (!enabled)
+        {
+            _autoMinimizeTimer.Stop();
+            if (_hotkeyAttached)
+            {
+                _hotkeyService.Unregister(HotkeyOwner);
+            }
+
+            ClearAutoMinimizeState();
+            _floatingWidgetManager.Sync([], SaveSettingsAsync);
+            StatusText = "老板键功能已关闭。";
+            return;
+        }
+
+        if (!_initialized)
+        {
+            return;
+        }
+
+        if (_hotkeyAttached)
+        {
+            RegisterCurrentHotkey();
+        }
+
+        SyncFloatingWidgets();
+        _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
+        _autoMinimizeTimer.Start();
+        StatusText = "老板键功能已启用。";
     }
 
     public async Task<bool> SetHotkeyAsync(HotkeyGesture gesture)
@@ -107,7 +151,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        if (!_hotkeyService.TryRegister(HotkeyOwner, gesture, ToggleWindows, out var error))
+        if (_featureEnabled && !_hotkeyService.TryRegister(HotkeyOwner, gesture, ToggleWindows, out var error))
         {
             StatusText = error ?? "快捷键注册失败。";
             return false;
@@ -318,6 +362,11 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
     private void OnAutoMinimizeTick(object? sender, EventArgs e)
     {
+        if (!_featureEnabled)
+        {
+            return;
+        }
+
         var now = DateTimeOffset.UtcNow;
         if (now - _lastAutoMinimizeRefresh >= TimeSpan.FromSeconds(5))
         {
@@ -558,7 +607,18 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
     private void SyncFloatingWidgets()
     {
-        _floatingWidgetManager.Sync(Windows, SaveSettingsAsync);
+        _floatingWidgetManager.Sync(_featureEnabled ? Windows : [], SaveSettingsAsync);
+    }
+
+    private void ClearAutoMinimizeState()
+    {
+        _autoMinimizeStates.Clear();
+        _hotkeyAutoMinimizeSuppressed.Clear();
+        _widgetEntryGraceUntil.Clear();
+        _widgetActivationOriginUntil.Clear();
+        _lastHoveredWindowHandle = nint.Zero;
+        _lastHoveredWindow = null;
+        _lastForegroundWindowHandle = nint.Zero;
     }
 
     private void RegisterCurrentHotkey()
@@ -575,6 +635,11 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
 
     private void ToggleWindows()
     {
+        if (!_featureEnabled)
+        {
+            return;
+        }
+
         var currentWindows = _windowService.EnumerateTopLevelWindows();
         var targets = Windows
             .Select((item, priority) => new { Item = item, Priority = priority })

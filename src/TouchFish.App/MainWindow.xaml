@@ -6,9 +6,24 @@
         Background="{DynamicResource AppBackgroundBrush}"
         Width="1360" Height="860" MinWidth="1120" MinHeight="720"
         WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <Style x:Key="FeatureToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="42" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="4,1" />
+            <Setter Property="Content" Value="关" />
+            <Setter Property="ToolTip" Value="点击启用功能" />
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Content" Value="开" />
+                    <Setter Property="ToolTip" Value="点击关闭功能" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="158" />
+            <ColumnDefinition Width="190" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Border Background="{DynamicResource SurfaceBrush}"
@@ -21,8 +36,28 @@
                 <ListBox x:Name="PrimaryNavigation" BorderThickness="0"
                          Background="Transparent" SelectedIndex="0"
                          SelectionChanged="Navigation_OnSelectionChanged">
-                    <ListBoxItem Margin="0,0,0,5" Padding="12,10" Content="老板键" />
-                    <ListBoxItem Margin="0,0,0,5" Padding="12,10" Content="看书" />
+                    <ListBoxItem Margin="0,0,0,5" Padding="12,7" HorizontalContentAlignment="Stretch">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" Text="老板键" />
+                            <ToggleButton Grid.Column="1" Style="{StaticResource FeatureToggleStyle}"
+                                          IsChecked="{Binding BossKeyFeatureEnabled, Mode=TwoWay}" />
+                        </Grid>
+                    </ListBoxItem>
+                    <ListBoxItem Margin="0,0,0,5" Padding="12,7" HorizontalContentAlignment="Stretch">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" Text="看书" />
+                            <ToggleButton Grid.Column="1" Style="{StaticResource FeatureToggleStyle}"
+                                          IsChecked="{Binding ReaderFeatureEnabled, Mode=TwoWay}" />
+                        </Grid>
+                    </ListBoxItem>
                 </ListBox>
                 <ListBox x:Name="SettingsNavigation" Grid.Row="1" BorderThickness="0"
                          Background="Transparent" SelectionChanged="SettingsNavigation_OnSelectionChanged">
