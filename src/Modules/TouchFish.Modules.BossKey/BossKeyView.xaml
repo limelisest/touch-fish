@@ -131,28 +131,28 @@
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Style="{DynamicResource FieldLabelStyle}" Text="名称" />
-                                <TextBox Grid.Column="1" Margin="8,4,16,4" MinHeight="36"
+                                <TextBox Grid.Column="1" Margin="8,4,16,4"
                                          Text="{Binding SelectedWindow.Name, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock Grid.Column="2" Style="{DynamicResource FieldLabelStyle}" Text="标题包含" />
-                                <TextBox Grid.Column="3" Margin="8,4" MinHeight="36"
+                                <TextBox Grid.Column="3" Margin="8,4"
                                          Text="{Binding SelectedWindow.TitleContains, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <TextBlock Grid.Row="1" Style="{DynamicResource FieldLabelStyle}" Text="进程" />
-                                <TextBox Grid.Row="1" Grid.Column="1" Margin="8,4,16,4" MinHeight="36" IsReadOnly="True"
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="8,4,16,4" IsReadOnly="True"
                                          Text="{Binding SelectedWindow.ProcessName}" />
                                 <TextBlock Grid.Row="1" Grid.Column="2" Style="{DynamicResource FieldLabelStyle}" Text="进程路径" />
-                                <TextBox Grid.Row="1" Grid.Column="3" Margin="8,4" MinHeight="36" IsReadOnly="True"
+                                <TextBox Grid.Row="1" Grid.Column="3" Margin="8,4" IsReadOnly="True"
                                          Text="{Binding SelectedWindow.ProcessPath}" />
 
                                 <TextBlock Grid.Row="2" Style="{DynamicResource FieldLabelStyle}" Text="窗口类名" />
-                                <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="8,4" MinHeight="36" IsReadOnly="True"
+                                <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="8,4" IsReadOnly="True"
                                          Text="{Binding SelectedWindow.WindowClass}" />
 
                                 <TextBlock Grid.Row="3" Style="{DynamicResource FieldLabelStyle}" Text="自动最小化" />
                                 <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Margin="8,8,0,0" Orientation="Horizontal">
                                     <CheckBox VerticalAlignment="Center" Content="启用"
                                               IsChecked="{Binding SelectedWindow.AutoMinimizeEnabled, Mode=TwoWay}" />
-                                    <TextBox Width="70" MinHeight="36" Margin="16,0,8,0"
+                                    <TextBox Width="70" Margin="16,0,8,0"
                                              Text="{Binding SelectedWindow.AutoMinimizeSeconds, UpdateSourceTrigger=PropertyChanged}" />
                                     <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" Text="秒后" />
                                     <Button Margin="18,0,0,0" Content="应用到全部窗口"

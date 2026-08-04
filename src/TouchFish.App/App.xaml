@@ -178,9 +178,9 @@
             </Style>
 
             <Style TargetType="TextBox">
-                <Setter Property="MinHeight" Value="36" />
-                <Setter Property="Padding" Value="10,0" />
-                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="MinHeight" Value="40" />
+                <Setter Property="Padding" Value="10,6" />
+                <Setter Property="VerticalContentAlignment" Value="Stretch" />
                 <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
                 <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
                 <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}" />
@@ -198,7 +198,7 @@
                                     CornerRadius="6" SnapsToDevicePixels="True">
                                 <ScrollViewer x:Name="PART_ContentHost"
                                               Margin="{TemplateBinding Padding}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              VerticalAlignment="Stretch"
                                               HorizontalAlignment="Stretch"
                                               VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}"
                                               HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}" />
