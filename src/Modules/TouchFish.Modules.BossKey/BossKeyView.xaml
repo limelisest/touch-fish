@@ -173,7 +173,7 @@
                                     <RadioButton GroupName="FloatingWidgetTrigger" Content="点击"
                                                  IsChecked="{Binding SelectedWindow.IsClickTrigger, Mode=TwoWay}" />
                                     <RadioButton GroupName="FloatingWidgetTrigger" Margin="20,0,0,0"
-                                                 Content="光标停留 0.3 秒"
+                                                 Content="光标停留 1 秒"
                                                  IsChecked="{Binding SelectedWindow.IsPointerHoverTrigger, Mode=TwoWay}" />
                                 </StackPanel>
                             </Grid>

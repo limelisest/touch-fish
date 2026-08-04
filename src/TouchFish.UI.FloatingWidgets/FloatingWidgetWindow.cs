@@ -83,7 +83,7 @@ public sealed class FloatingWidgetWindow : Window
 
         _hoverTimer = new DispatcherTimer(DispatcherPriority.Input)
         {
-            Interval = TimeSpan.FromMilliseconds(300)
+            Interval = FloatingWidgetActivationPolicy.HoverActivationDelay
         };
         _hoverTimer.Tick += OnHoverTimerTick;
 

@@ -273,7 +273,7 @@
                                     <RadioButton GroupName="ReaderFloatingTrigger" Content="点击"
                                                  IsChecked="{Binding SelectedBook.IsClickTrigger, Mode=TwoWay}" />
                                     <RadioButton GroupName="ReaderFloatingTrigger" Margin="18,0,0,0"
-                                                 Content="停留 0.3 秒"
+                                                 Content="停留 1 秒"
                                                  IsChecked="{Binding SelectedBook.IsPointerHoverTrigger, Mode=TwoWay}" />
                                 </StackPanel>
 
