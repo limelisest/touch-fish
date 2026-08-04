@@ -35,6 +35,8 @@ public interface IWindowService
     IReadOnlyList<WindowDescriptor> EnumerateTopLevelWindows();
     nint GetForegroundWindowHandle();
     nint GetWindowUnderCursorHandle();
+    bool IsWindowFocused(nint windowHandle);
+    bool IsInputMethodWindowForTarget(nint targetWindowHandle, nint candidateWindowHandle);
     bool IsWindowRelated(nint windowHandle, nint candidateHandle);
     byte[]? GetWindowIconPng(nint windowHandle);
     bool TryFocus(nint windowHandle);

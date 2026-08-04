@@ -7,6 +7,30 @@ public sealed class AutoMinimizePolicyTests
 {
     private static readonly DateTimeOffset Now = new(2026, 7, 31, 12, 0, 0, TimeSpan.Zero);
 
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    public void ActiveCursorFocusOrInputMethodPreventsInactivityTracking(
+        bool cursorInsideTarget,
+        bool targetHasFocus,
+        bool inputMethodActive)
+    {
+        Assert.False(AutoMinimizePolicy.CanTrackInactivity(
+            cursorInsideTarget,
+            targetHasFocus,
+            inputMethodActive));
+    }
+
+    [Fact]
+    public void TracksInactivityOnlyAfterCursorLeavesAndTargetLosesFocus()
+    {
+        Assert.True(AutoMinimizePolicy.CanTrackInactivity(
+            cursorInsideTarget: false,
+            targetHasFocus: false,
+            inputMethodActive: false));
+    }
+
     [Fact]
     public void MinimizesWhenConfiguredSecondsHaveElapsed()
     {
@@ -16,7 +40,7 @@ public sealed class AutoMinimizePolicyTests
     }
 
     [Fact]
-    public void ZeroSecondsMinimizesImmediatelyAfterCursorLeaves()
+    public void ZeroSecondsMinimizesImmediatelyAfterEligibleInactivityStarts()
     {
         Assert.True(AutoMinimizePolicy.ShouldMinimize(Now, 0, Now));
     }

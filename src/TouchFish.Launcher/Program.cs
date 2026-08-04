@@ -8,13 +8,13 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        var sourceDirectory = Path.Combine(AppContext.BaseDirectory, "源文件");
+        var sourceDirectory = Path.Combine(AppContext.BaseDirectory, "src");
         var target = Path.Combine(sourceDirectory, "TouchFish.exe");
         if (!File.Exists(target))
         {
             _ = MessageBoxW(
                 nint.Zero,
-                "找不到“源文件\\TouchFish.exe”，请重新解压完整的 TouchFish 文件夹。",
+                "找不到“src\\TouchFish.exe”，请重新解压完整的 TouchFish 文件夹。",
                 "TouchFish 启动失败",
                 0x10);
             return;

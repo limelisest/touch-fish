@@ -72,6 +72,56 @@ public sealed partial class Win32WindowService : IWindowService
 
     public nint GetForegroundWindowHandle() => NativeMethods.GetForegroundWindow();
 
+    public bool IsWindowFocused(nint windowHandle)
+    {
+        if (!NativeMethods.IsWindow(windowHandle))
+        {
+            return false;
+        }
+
+        var foregroundWindow = NativeMethods.GetForegroundWindow();
+        if (IsWindowRelated(windowHandle, foregroundWindow))
+        {
+            return true;
+        }
+
+        var foregroundInfo = GuiThreadInfo.Create();
+        return NativeMethods.GetGUIThreadInfo(0, ref foregroundInfo) &&
+               IsWindowRelated(windowHandle, foregroundInfo.FocusWindow);
+    }
+
+    public bool IsInputMethodWindowForTarget(nint targetWindowHandle, nint candidateWindowHandle)
+    {
+        if (!NativeMethods.IsWindow(targetWindowHandle) || !NativeMethods.IsWindow(candidateWindowHandle))
+        {
+            return false;
+        }
+
+        var defaultInputMethodWindow = NativeMethods.ImmGetDefaultIMEWnd(targetWindowHandle);
+        if (defaultInputMethodWindow != nint.Zero &&
+            (candidateWindowHandle == defaultInputMethodWindow ||
+             IsWindowRelated(defaultInputMethodWindow, candidateWindowHandle)))
+        {
+            return true;
+        }
+
+        var candidateRoot = NativeMethods.GetAncestor(candidateWindowHandle, GaRoot);
+        var className = GetClassName(candidateRoot);
+        if (className.Contains("IME", StringComparison.OrdinalIgnoreCase) ||
+            className.Contains("Candidate", StringComparison.OrdinalIgnoreCase) ||
+            className.Contains("Cicero", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var processName = Inspect(candidateRoot)?.ProcessName;
+        return processName is not null &&
+               (processName.Equals("TextInputHost", StringComparison.OrdinalIgnoreCase) ||
+                processName.Equals("ctfmon", StringComparison.OrdinalIgnoreCase) ||
+                processName.Equals("TabTip", StringComparison.OrdinalIgnoreCase) ||
+                processName.Equals("ChsIME", StringComparison.OrdinalIgnoreCase));
+    }
+
     public nint GetWindowUnderCursorHandle()
     {
         if (!NativeMethods.GetCursorPos(out var point))
@@ -476,6 +526,25 @@ public sealed partial class Win32WindowService : IWindowService
     private readonly record struct Rect(int Left, int Top, int Right, int Bottom);
 
     [StructLayout(LayoutKind.Sequential)]
+    private struct GuiThreadInfo
+    {
+        internal uint Size;
+        internal uint Flags;
+        internal nint ActiveWindow;
+        internal nint FocusWindow;
+        internal nint CaptureWindow;
+        internal nint MenuOwnerWindow;
+        internal nint MoveSizeWindow;
+        internal nint CaretWindow;
+        internal Rect CaretRectangle;
+
+        internal static GuiThreadInfo Create() => new()
+        {
+            Size = (uint)Marshal.SizeOf<GuiThreadInfo>()
+        };
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     private struct WindowPlacement
     {
         public int Length;
@@ -549,6 +618,13 @@ public sealed partial class Win32WindowService : IWindowService
 
         [DllImport("user32.dll")]
         internal static extern nint GetForegroundWindow();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetGUIThreadInfo(uint threadId, ref GuiThreadInfo info);
+
+        [DllImport("imm32.dll")]
+        internal static extern nint ImmGetDefaultIMEWnd(nint windowHandle);
 
         [DllImport("user32.dll", SetLastError = true)]
         internal static extern nint SendMessageTimeout(

@@ -2,6 +2,12 @@ namespace TouchFish.Modules.BossKey;
 
 public static class AutoMinimizePolicy
 {
+    public static bool CanTrackInactivity(
+        bool cursorInsideTarget,
+        bool targetHasFocus,
+        bool inputMethodActive) =>
+        !cursorInsideTarget && !targetHasFocus && !inputMethodActive;
+
     public static bool ShouldMinimize(
         DateTimeOffset? inactiveSince,
         int seconds,
