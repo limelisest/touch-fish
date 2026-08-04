@@ -245,14 +245,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
         var now = DateTimeOffset.UtcNow;
         if (_readerWindow.IsCursorInside())
         {
-            _entryGraceUntil = null;
             _cursorLeftAt = null;
-            return;
-        }
-
-        if (_entryGraceUntil is not null &&
-            FloatingWidgetActivationPolicy.IsEntryGraceActive(_entryGraceUntil.Value, now))
-        {
             return;
         }
 

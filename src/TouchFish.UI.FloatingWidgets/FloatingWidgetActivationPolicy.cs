@@ -5,7 +5,7 @@ namespace TouchFish.UI.FloatingWidgets;
 /// </summary>
 public static class FloatingWidgetActivationPolicy
 {
-    public static TimeSpan HoverActivationDelay { get; } = TimeSpan.FromSeconds(1);
+    public static TimeSpan HoverActivationDelay { get; } = TimeSpan.FromMilliseconds(300);
 
     public static TimeSpan EntryGraceDuration { get; } = TimeSpan.FromSeconds(1);
 

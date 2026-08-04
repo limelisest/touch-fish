@@ -145,7 +145,7 @@
                                     <RadioButton GroupName="BrowserFloatingTrigger" Content="点击"
                                                  IsChecked="{Binding SelectedSite.IsClickTrigger, Mode=TwoWay}" />
                                     <RadioButton GroupName="BrowserFloatingTrigger" Margin="18,0,0,0"
-                                                 Content="光标停留 1 秒"
+                                                 Content="光标停留 0.3 秒"
                                                  IsChecked="{Binding SelectedSite.IsPointerHoverTrigger, Mode=TwoWay}" />
                                 </StackPanel>
                             </Grid>

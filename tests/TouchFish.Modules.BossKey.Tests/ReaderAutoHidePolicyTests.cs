@@ -28,4 +28,13 @@ public sealed class ReaderAutoHidePolicyTests
         Assert.False(ReaderAutoHidePolicy.ShouldHide(null, Now, 3, Now.AddMilliseconds(2999)));
         Assert.True(ReaderAutoHidePolicy.ShouldHide(null, Now, 3, Now.AddSeconds(3)));
     }
+
+    [Fact]
+    public void EntryGraceAndLeaveDelayRunInParallelInsteadOfBeingAddedTogether()
+    {
+        var graceUntil = Now.AddSeconds(1);
+
+        Assert.False(ReaderAutoHidePolicy.ShouldHide(graceUntil, Now, 3, Now.AddMilliseconds(2999)));
+        Assert.True(ReaderAutoHidePolicy.ShouldHide(graceUntil, Now, 3, Now.AddSeconds(3)));
+    }
 }

@@ -448,23 +448,17 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             if (!canTrackInactivity)
             {
                 state.LostFocusAt = null;
-                if (cursorIsInsideTarget)
-                {
-                    _widgetEntryGraceUntil.Remove(handle);
-                }
-
                 continue;
             }
 
-            if (state.Seconds == 0 &&
-                _widgetEntryGraceUntil.TryGetValue(handle, out var graceUntil) &&
+            state.LostFocusAt ??= now;
+            if (_widgetEntryGraceUntil.TryGetValue(handle, out var graceUntil) &&
                 FloatingWidgetActivationPolicy.IsEntryGraceActive(graceUntil, now))
             {
                 continue;
             }
 
             _widgetEntryGraceUntil.Remove(handle);
-            state.LostFocusAt ??= now;
             if (!AutoMinimizePolicy.ShouldMinimize(state.LostFocusAt, state.Seconds, now))
             {
                 continue;

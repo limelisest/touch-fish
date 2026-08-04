@@ -190,13 +190,6 @@ public sealed class BrowserWindowManager : IDisposable
             var cursorInside = _windowService.IsWindowRelated(handle, cursorWindow);
             if (cursorInside)
             {
-                _widgetGraceUntil.Remove(site.Id);
-                _outsideSince[site.Id] = null;
-                continue;
-            }
-            if (_widgetGraceUntil.TryGetValue(site.Id, out var grace) &&
-                FloatingWidgetActivationPolicy.IsEntryGraceActive(grace, now))
-            {
                 _outsideSince[site.Id] = null;
                 continue;
             }
@@ -205,10 +198,16 @@ public sealed class BrowserWindowManager : IDisposable
                 _outsideSince[site.Id] = now;
                 outsideSince = now;
             }
+            if (_widgetGraceUntil.TryGetValue(site.Id, out var grace) &&
+                FloatingWidgetActivationPolicy.IsEntryGraceActive(grace, now))
+            {
+                continue;
+            }
             if (now - outsideSince.Value >= TimeSpan.FromSeconds(Math.Max(0, site.AutoHideSeconds)))
             {
                 window.Hide();
                 _outsideSince[site.Id] = null;
+                _widgetGraceUntil.Remove(site.Id);
                 StatusChanged?.Invoke($"已自动隐藏“{site.Name}”。");
             }
         }
