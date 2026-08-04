@@ -73,11 +73,8 @@
 
                     <Border Grid.Row="2" Margin="0,12,0,0" Style="{DynamicResource SubtleCardStyle}">
                         <StackPanel>
-                            <TextBlock Margin="0,0,0,6" Style="{DynamicResource FieldLabelStyle}" Text="书名" />
-                            <TextBox Height="34" VerticalContentAlignment="Center"
-                                     ToolTip="修改当前书名"
-                                     Text="{Binding SelectedBook.Title, UpdateSourceTrigger=PropertyChanged}" />
-                            <Grid Margin="0,10,0,0">
+                            <TextBlock Margin="0,0,0,8" Style="{DynamicResource FieldLabelStyle}" Text="书籍管理" />
+                            <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="10" />
@@ -133,6 +130,32 @@
                 <StackPanel>
                     <Border Style="{DynamicResource CardStyle}">
                         <StackPanel>
+                            <TextBlock Style="{DynamicResource SectionTitleStyle}" Text="书籍信息" />
+                            <TextBlock Margin="0,4,0,14" Style="{DynamicResource PageSubtitleStyle}"
+                                       Text="查看并修改当前选中书籍的信息。" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="92" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Style="{DynamicResource FieldLabelStyle}" Text="书名" />
+                                <TextBox Grid.Column="1" Height="36" Margin="8,4"
+                                         VerticalContentAlignment="Center"
+                                         Text="{Binding SelectedBook.Title, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="1" Style="{DynamicResource FieldLabelStyle}" Text="章节数量" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Margin="8,8,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Text="{Binding Chapters.Count, StringFormat={}{0} 章}" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Margin="0,14,0,0" Style="{DynamicResource CardStyle}">
+                        <StackPanel>
                             <TextBlock Style="{DynamicResource SectionTitleStyle}" Text="阅读外观" />
                             <TextBlock Margin="0,4,0,14" Style="{DynamicResource PageSubtitleStyle}"
                                        Text="调整字体、排版和阅读窗口显示效果。" />
@@ -156,8 +179,13 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Height="34" VerticalContentAlignment="Center" IsReadOnly="True"
-                                             Text="{Binding SelectedBook.ReaderFontFamily}" />
+                                    <Border Height="36" Padding="10,0" CornerRadius="6"
+                                            Background="{DynamicResource ControlBackgroundBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                            ToolTip="{Binding SelectedBook.ReaderFontFamily}">
+                                        <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                   Text="{Binding SelectedBook.ReaderFontFamily}" />
+                                    </Border>
                                     <Button Grid.Column="1" Margin="8,0,0,0" Content="选择…"
                                             Command="{Binding ChooseFontCommand}" />
                                 </Grid>

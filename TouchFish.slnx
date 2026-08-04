@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/TouchFish.App/TouchFish.App.csproj" />
     <Project Path="src/TouchFish.Contracts/TouchFish.Contracts.csproj" />
+    <Project Path="src/TouchFish.Launcher/TouchFish.Launcher.csproj" />
     <Project Path="src/TouchFish.Platform.Windows/TouchFish.Platform.Windows.csproj" />
     <Project Path="src/TouchFish.UI.FloatingWidgets/TouchFish.UI.FloatingWidgets.csproj" />
   </Folder>
