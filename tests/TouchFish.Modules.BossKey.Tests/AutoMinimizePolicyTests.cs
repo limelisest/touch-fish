@@ -8,41 +8,13 @@ public sealed class AutoMinimizePolicyTests
     private static readonly DateTimeOffset Now = new(2026, 7, 31, 12, 0, 0, TimeSpan.Zero);
 
     [Theory]
-    [InlineData(true, false, false)]
-    [InlineData(false, true, false)]
-    [InlineData(false, false, true)]
-    public void ActiveCursorFocusOrInputMethodPreventsInactivityTracking(
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void TracksInactivityOnlyFromCursorPosition(
         bool cursorInsideTarget,
-        bool targetHasFocus,
-        bool inputMethodActive)
-    {
-        Assert.False(AutoMinimizePolicy.CanTrackInactivity(
-            cursorInsideTarget,
-            targetHasFocus,
-            inputMethodActive));
-    }
-
-    [Fact]
-    public void TracksInactivityOnlyAfterCursorLeavesAndTargetLosesFocus()
-    {
-        Assert.True(AutoMinimizePolicy.CanTrackInactivity(
-            cursorInsideTarget: false,
-            targetHasFocus: false,
-            inputMethodActive: false));
-    }
-
-    [Theory]
-    [InlineData(true, false, false)]
-    [InlineData(false, true, false)]
-    [InlineData(false, false, true)]
-    public void WidgetActivationTracksCursorLeavingWithoutRequiringFocusLoss(
-        bool cursorInsideTarget,
-        bool inputMethodActive,
         bool expected)
     {
-        Assert.Equal(expected, AutoMinimizePolicy.CanTrackWidgetInactivity(
-            cursorInsideTarget,
-            inputMethodActive));
+        Assert.Equal(expected, AutoMinimizePolicy.CanTrackCursorInactivity(cursorInsideTarget));
     }
 
     [Fact]

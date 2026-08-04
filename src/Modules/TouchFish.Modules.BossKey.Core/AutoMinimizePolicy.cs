@@ -2,16 +2,8 @@ namespace TouchFish.Modules.BossKey;
 
 public static class AutoMinimizePolicy
 {
-    public static bool CanTrackInactivity(
-        bool cursorInsideTarget,
-        bool targetHasFocus,
-        bool inputMethodActive) =>
-        !cursorInsideTarget && !targetHasFocus && !inputMethodActive;
-
-    public static bool CanTrackWidgetInactivity(
-        bool cursorInsideTarget,
-        bool inputMethodActive) =>
-        !cursorInsideTarget && !inputMethodActive;
+    public static bool CanTrackCursorInactivity(bool cursorInsideTarget) =>
+        !cursorInsideTarget;
 
     public static bool ShouldMinimize(
         DateTimeOffset? inactiveSince,

@@ -90,122 +90,22 @@ public sealed partial class Win32WindowService : IWindowService
                IsWindowRelated(windowHandle, foregroundInfo.FocusWindow);
     }
 
-    public bool IsInputMethodActiveForTarget(nint targetWindowHandle)
+    public bool IsCursorWithinWindowBounds(nint windowHandle)
     {
-        if (!NativeMethods.IsWindow(targetWindowHandle) || !IsWindowFocused(targetWindowHandle))
+        if (!NativeMethods.IsWindow(windowHandle) || !NativeMethods.GetCursorPos(out var cursor))
         {
             return false;
         }
 
-        var targetThread = NativeMethods.GetWindowThreadProcessId(targetWindowHandle, out _);
-        var threadInfo = GuiThreadInfo.Create();
-        if (!NativeMethods.GetGUIThreadInfo(targetThread, ref threadInfo))
-        {
-            return false;
-        }
-
-        var focusWindow = threadInfo.FocusWindow == nint.Zero
-            ? targetWindowHandle
-            : threadInfo.FocusWindow;
-        if (!IsWindowRelated(targetWindowHandle, focusWindow))
-        {
-            return false;
-        }
-
-        var inputContext = NativeMethods.ImmGetContext(focusWindow);
-        if (inputContext == nint.Zero)
-        {
-            return false;
-        }
-
-        try
-        {
-            if (NativeMethods.ImmGetCompositionString(
-                    inputContext,
-                    NativeMethods.GcsCompositionString,
-                    nint.Zero,
-                    0) > 0)
-            {
-                return true;
-            }
-
-            for (uint index = 0; index < NativeMethods.MaxCandidateLists; index++)
-            {
-                var requiredBytes = NativeMethods.ImmGetCandidateList(inputContext, index, nint.Zero, 0);
-                if (requiredBytes < NativeMethods.CandidateListHeaderSize ||
-                    requiredBytes > NativeMethods.MaxCandidateListBytes)
-                {
-                    continue;
-                }
-
-                var candidateList = Marshal.AllocHGlobal((int)requiredBytes);
-                try
-                {
-                    var copiedBytes = NativeMethods.ImmGetCandidateList(
-                        inputContext,
-                        index,
-                        candidateList,
-                        requiredBytes);
-                    if (copiedBytes >= NativeMethods.CandidateListHeaderSize &&
-                        Marshal.ReadInt32(candidateList, NativeMethods.CandidateListCountOffset) > 0)
-                    {
-                        return true;
-                    }
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal(candidateList);
-                }
-            }
-
-            return false;
-        }
-        finally
-        {
-            NativeMethods.ImmReleaseContext(focusWindow, inputContext);
-        }
-    }
-
-    public bool IsInputMethodWindowForTarget(nint targetWindowHandle, nint candidateWindowHandle)
-    {
-        if (!NativeMethods.IsWindow(targetWindowHandle) || !NativeMethods.IsWindow(candidateWindowHandle))
-        {
-            return false;
-        }
-
-        var targetRoot = NativeMethods.GetAncestor(targetWindowHandle, GaRoot);
-        var candidateRoot = NativeMethods.GetAncestor(candidateWindowHandle, GaRoot);
-        if (targetRoot == candidateRoot)
-        {
-            return false;
-        }
-
-        var defaultInputMethodWindow = NativeMethods.ImmGetDefaultIMEWnd(targetWindowHandle);
-        if (defaultInputMethodWindow != nint.Zero)
-        {
-            var defaultInputMethodRoot = NativeMethods.GetAncestor(defaultInputMethodWindow, GaRoot);
-            if (candidateRoot == defaultInputMethodRoot ||
-                IsOwnedBy(candidateRoot, defaultInputMethodRoot) ||
-                IsOwnedBy(defaultInputMethodRoot, candidateRoot))
-            {
-                return true;
-            }
-        }
-
-        var className = GetClassName(candidateRoot);
-        if (className.Contains("IME", StringComparison.OrdinalIgnoreCase) ||
-            className.Contains("Candidate", StringComparison.OrdinalIgnoreCase) ||
-            className.Contains("Cicero", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        var processName = Inspect(candidateRoot)?.ProcessName;
-        return processName is not null &&
-               (processName.Equals("TextInputHost", StringComparison.OrdinalIgnoreCase) ||
-                processName.Equals("ctfmon", StringComparison.OrdinalIgnoreCase) ||
-                processName.Equals("TabTip", StringComparison.OrdinalIgnoreCase) ||
-                processName.Equals("ChsIME", StringComparison.OrdinalIgnoreCase));
+        var rootWindow = NativeMethods.GetAncestor(windowHandle, GaRoot);
+        return NativeMethods.GetWindowRect(rootWindow, out var bounds) &&
+               CursorWindowBoundsPolicy.Contains(
+                   cursor.X,
+                   cursor.Y,
+                   bounds.Left,
+                   bounds.Top,
+                   bounds.Right,
+                   bounds.Bottom);
     }
 
     public nint GetWindowUnderCursorHandle()
@@ -697,6 +597,10 @@ public sealed partial class Win32WindowService : IWindowService
         internal static extern bool GetCursorPos(out NativePoint point);
 
         [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetWindowRect(nint windowHandle, out Rect bounds);
+
+        [DllImport("user32.dll")]
         internal static extern nint GetAncestor(nint windowHandle, uint flags);
 
         [DllImport("user32.dll")]
@@ -708,36 +612,6 @@ public sealed partial class Win32WindowService : IWindowService
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool GetGUIThreadInfo(uint threadId, ref GuiThreadInfo info);
-
-        [DllImport("imm32.dll")]
-        internal static extern nint ImmGetContext(nint windowHandle);
-
-        internal const uint GcsCompositionString = 0x0008;
-        internal const uint MaxCandidateLists = 4;
-        internal const uint CandidateListHeaderSize = 24;
-        internal const int CandidateListCountOffset = 8;
-        internal const uint MaxCandidateListBytes = 1024 * 1024;
-
-        [DllImport("imm32.dll", EntryPoint = "ImmGetCompositionStringW")]
-        internal static extern int ImmGetCompositionString(
-            nint inputContext,
-            uint index,
-            nint buffer,
-            uint bufferLength);
-
-        [DllImport("imm32.dll", EntryPoint = "ImmGetCandidateListW")]
-        internal static extern uint ImmGetCandidateList(
-            nint inputContext,
-            uint candidateListIndex,
-            nint candidateList,
-            uint bufferLength);
-
-        [DllImport("imm32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool ImmReleaseContext(nint windowHandle, nint inputContext);
-
-        [DllImport("imm32.dll")]
-        internal static extern nint ImmGetDefaultIMEWnd(nint windowHandle);
 
         [DllImport("user32.dll", SetLastError = true)]
         internal static extern nint SendMessageTimeout(
