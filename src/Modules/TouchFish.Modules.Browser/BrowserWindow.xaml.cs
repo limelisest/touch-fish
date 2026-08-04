@@ -157,7 +157,7 @@ public partial class BrowserWindow : Window
         if (!_addressPressPending || !AddressBox.IsReadOnly) return;
         _addressPressPending = false;
         AddressBox.ReleaseMouseCapture();
-        AddressBox.IsReadOnly = false;
+        SetAddressEditing(true);
         AddressBox.Focus();
         AddressBox.SelectAll();
         e.Handled = true;
@@ -168,12 +168,14 @@ public partial class BrowserWindow : Window
         if (e.Key == Key.Escape)
         {
             AddressBox.Text = _currentUrl;
+            SetAddressEditing(false);
             Browser.Focus();
             e.Handled = true;
             return;
         }
         if (e.Key != Key.Enter) return;
         Navigate(AddressBox.Text);
+        SetAddressEditing(false);
         Browser.Focus();
         e.Handled = true;
     }
@@ -181,7 +183,13 @@ public partial class BrowserWindow : Window
     private void AddressBox_OnLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
         if (!_applyingSettings && !AddressBox.IsReadOnly) Navigate(AddressBox.Text);
-        AddressBox.IsReadOnly = true;
+        SetAddressEditing(false);
+    }
+
+    private void SetAddressEditing(bool editing)
+    {
+        AddressBox.IsReadOnly = !editing;
+        AddressBox.Cursor = editing ? Cursors.IBeam : Cursors.Arrow;
     }
 
     private void Reload_OnClick(object sender, RoutedEventArgs e) => Browser.CoreWebView2?.Reload();

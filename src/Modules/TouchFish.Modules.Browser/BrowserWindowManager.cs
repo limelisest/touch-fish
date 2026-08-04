@@ -125,17 +125,9 @@ public sealed class BrowserWindowManager : IDisposable
         }
         var environment = await _environment.Value;
         var applyTask = window.ApplyAsync(site, environment);
-        if (show)
-        {
-            _widgetGraceUntil[site.Id] = DateTimeOffset.Now.AddSeconds(1);
-            window.ShowAndActivate();
-        }
+        if (show) window.ShowAndActivate();
         await applyTask;
-        if (show)
-        {
-            _widgetGraceUntil[site.Id] = DateTimeOffset.Now.AddSeconds(1);
-            window.ShowAndActivate();
-        }
+        if (show) window.ShowAndActivate();
     }
 
     private void SyncWidget(BrowserSiteItemViewModel site)
@@ -148,10 +140,10 @@ public sealed class BrowserWindowManager : IDisposable
                 site.FloatingWidgetTop ?? 80 + _widgets.Count * 48);
             widget.ActivationRequested += () =>
             {
-                _widgetGraceUntil[site.Id] = DateTimeOffset.Now.AddSeconds(1);
+                _widgetGraceUntil[site.Id] =
+                    FloatingWidgetActivationPolicy.StartEntryGrace(DateTimeOffset.UtcNow);
                 _ = OpenAsync(site);
             };
-            widget.PointerEntered += () => _widgetGraceUntil[site.Id] = DateTimeOffset.Now.AddSeconds(1);
             widget.PositionChanged += (left, top) =>
             {
                 site.FloatingWidgetLeft = left;
@@ -180,7 +172,7 @@ public sealed class BrowserWindowManager : IDisposable
     private void OnAutoHideTick(object? sender, EventArgs e)
     {
         if (!_featureEnabled || _shuttingDown) return;
-        var now = DateTimeOffset.Now;
+        var now = DateTimeOffset.UtcNow;
         var cursorWindow = _windowService.GetWindowUnderCursorHandle();
         foreach (var site in _sites.Where(site => site.IsEnabled))
         {
@@ -193,7 +185,8 @@ public sealed class BrowserWindowManager : IDisposable
                 _outsideSince[site.Id] = null;
                 continue;
             }
-            if (_widgetGraceUntil.TryGetValue(site.Id, out var grace) && now < grace)
+            if (_widgetGraceUntil.TryGetValue(site.Id, out var grace) &&
+                FloatingWidgetActivationPolicy.IsEntryGraceActive(grace, now))
             {
                 _outsideSince[site.Id] = null;
                 continue;

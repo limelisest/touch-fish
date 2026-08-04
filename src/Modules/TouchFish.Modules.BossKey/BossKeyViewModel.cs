@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows.Threading;
 using TouchFish.Contracts;
+using TouchFish.UI.FloatingWidgets;
 
 namespace TouchFish.Modules.BossKey;
 
@@ -451,9 +452,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 continue;
             }
 
-            if (state.Seconds == 0 &&
-                _widgetEntryGraceUntil.TryGetValue(handle, out var graceUntil) &&
-                AutoMinimizePolicy.IsEntryGraceActive(graceUntil, now))
+            if (_widgetEntryGraceUntil.TryGetValue(handle, out var graceUntil) &&
+                FloatingWidgetActivationPolicy.IsEntryGraceActive(graceUntil, now))
             {
                 continue;
             }
@@ -480,7 +480,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     {
         var now = DateTimeOffset.UtcNow;
         _hotkeyAutoMinimizeSuppressed.Remove(windowHandle);
-        _widgetEntryGraceUntil[windowHandle] = now.AddSeconds(1);
+        _widgetEntryGraceUntil[windowHandle] = FloatingWidgetActivationPolicy.StartEntryGrace(now);
         _widgetActivationOriginUntil[windowHandle] = now.AddSeconds(3);
         _lastTargetFocusSeenAt[windowHandle] = now;
     }

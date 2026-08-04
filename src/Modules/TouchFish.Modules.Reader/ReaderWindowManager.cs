@@ -221,7 +221,7 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
     private void StartAutoHide()
     {
         _autoHideActive = true;
-        _entryGraceUntil = DateTimeOffset.UtcNow.AddSeconds(1);
+        _entryGraceUntil = FloatingWidgetActivationPolicy.StartEntryGrace(DateTimeOffset.UtcNow);
         _cursorLeftAt = null;
         _autoHideTimer.Start();
     }
@@ -250,7 +250,8 @@ public sealed class ReaderWindowManager : IManagedToolWindow, IDisposable
             return;
         }
 
-        if (_entryGraceUntil is not null && now < _entryGraceUntil.Value)
+        if (_entryGraceUntil is not null &&
+            FloatingWidgetActivationPolicy.IsEntryGraceActive(_entryGraceUntil.Value, now))
         {
             return;
         }
