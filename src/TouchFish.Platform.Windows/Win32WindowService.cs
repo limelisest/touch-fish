@@ -90,6 +90,49 @@ public sealed partial class Win32WindowService : IWindowService
                IsWindowRelated(windowHandle, foregroundInfo.FocusWindow);
     }
 
+    public bool IsInputMethodActiveForTarget(nint targetWindowHandle)
+    {
+        if (!NativeMethods.IsWindow(targetWindowHandle) || !IsWindowFocused(targetWindowHandle))
+        {
+            return false;
+        }
+
+        var targetThread = NativeMethods.GetWindowThreadProcessId(targetWindowHandle, out _);
+        var threadInfo = GuiThreadInfo.Create();
+        if (!NativeMethods.GetGUIThreadInfo(targetThread, ref threadInfo))
+        {
+            return false;
+        }
+
+        var focusWindow = threadInfo.FocusWindow == nint.Zero
+            ? targetWindowHandle
+            : threadInfo.FocusWindow;
+        if (!IsWindowRelated(targetWindowHandle, focusWindow))
+        {
+            return false;
+        }
+
+        var inputContext = NativeMethods.ImmGetContext(focusWindow);
+        if (inputContext != nint.Zero)
+        {
+            try
+            {
+                if (NativeMethods.ImmGetOpenStatus(inputContext))
+                {
+                    return true;
+                }
+            }
+            finally
+            {
+                NativeMethods.ImmReleaseContext(focusWindow, inputContext);
+            }
+        }
+
+        var defaultInputMethodWindow = NativeMethods.ImmGetDefaultIMEWnd(focusWindow);
+        return defaultInputMethodWindow != nint.Zero &&
+               NativeMethods.IsWindowVisible(defaultInputMethodWindow);
+    }
+
     public bool IsInputMethodWindowForTarget(nint targetWindowHandle, nint candidateWindowHandle)
     {
         if (!NativeMethods.IsWindow(targetWindowHandle) || !NativeMethods.IsWindow(candidateWindowHandle))
@@ -622,6 +665,17 @@ public sealed partial class Win32WindowService : IWindowService
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool GetGUIThreadInfo(uint threadId, ref GuiThreadInfo info);
+
+        [DllImport("imm32.dll")]
+        internal static extern nint ImmGetContext(nint windowHandle);
+
+        [DllImport("imm32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool ImmGetOpenStatus(nint inputContext);
+
+        [DllImport("imm32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool ImmReleaseContext(nint windowHandle, nint inputContext);
 
         [DllImport("imm32.dll")]
         internal static extern nint ImmGetDefaultIMEWnd(nint windowHandle);

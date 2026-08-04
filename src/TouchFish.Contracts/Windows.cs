@@ -36,6 +36,7 @@ public interface IWindowService
     nint GetForegroundWindowHandle();
     nint GetWindowUnderCursorHandle();
     bool IsWindowFocused(nint windowHandle);
+    bool IsInputMethodActiveForTarget(nint targetWindowHandle);
     bool IsInputMethodWindowForTarget(nint targetWindowHandle, nint candidateWindowHandle);
     bool IsWindowRelated(nint windowHandle, nint candidateHandle);
     byte[]? GetWindowIconPng(nint windowHandle);

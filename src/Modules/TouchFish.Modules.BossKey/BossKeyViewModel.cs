@@ -422,10 +422,13 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 _lastTargetFocusSeenAt[handle] = now;
             }
 
-            var inputMethodActive = !targetHasFocus &&
-                                    _lastTargetFocusSeenAt.TryGetValue(handle, out var lastFocusSeenAt) &&
-                                    now - lastFocusSeenAt <= InputMethodAssociationGrace &&
-                                    _windowService.IsInputMethodWindowForTarget(handle, foregroundWindowHandle);
+            var targetRecentlyFocused = targetHasFocus ||
+                                        (_lastTargetFocusSeenAt.TryGetValue(handle, out var lastFocusSeenAt) &&
+                                         now - lastFocusSeenAt <= InputMethodAssociationGrace);
+            var inputMethodActive = _windowService.IsInputMethodActiveForTarget(handle) ||
+                                    (targetRecentlyFocused &&
+                                     (_windowService.IsInputMethodWindowForTarget(handle, foregroundWindowHandle) ||
+                                      _windowService.IsInputMethodWindowForTarget(handle, windowUnderCursor)));
             if (inputMethodActive)
             {
                 _lastTargetFocusSeenAt[handle] = now;
