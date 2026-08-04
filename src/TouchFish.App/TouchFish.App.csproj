@@ -6,7 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>TouchFish.App</RootNamespace>
     <AssemblyName>TouchFish</AssemblyName>
-    <Version>0.13.4</Version>
+    <Version>0.13.5</Version>
     <Product>TouchFish</Product>
     <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -20,10 +20,18 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="WPF-UI" />
+    <PackageDownload Include="Microsoft.Windows.CsWinRT" Version="[1.6.5]" />
+    <PackageDownload Include="Microsoft.Windows.SDK.NET.Ref" Version="[10.0.17763.17]" />
     <ProjectReference Include="..\TouchFish.Contracts\TouchFish.Contracts.csproj" />
     <ProjectReference Include="..\TouchFish.Platform.Windows\TouchFish.Platform.Windows.csproj" />
     <ProjectReference Include="..\Modules\TouchFish.Modules.BossKey\TouchFish.Modules.BossKey.csproj" />
     <ProjectReference Include="..\Modules\TouchFish.Modules.Browser\TouchFish.Modules.Browser.csproj" />
     <ProjectReference Include="..\Modules\TouchFish.Modules.Reader\TouchFish.Modules.Reader.csproj" />
+    <Reference Include="Microsoft.Windows.SDK.NET"
+               HintPath="$(NuGetPackageRoot)microsoft.windows.sdk.net.ref/10.0.17763.17/lib/Microsoft.Windows.SDK.NET.dll"
+               Private="true" />
+    <Reference Include="WinRT.Runtime"
+               HintPath="$(NuGetPackageRoot)microsoft.windows.cswinrt/1.6.5/lib/net5.0/WinRT.Runtime.dll"
+               Private="true" />
   </ItemGroup>
 </Project>
