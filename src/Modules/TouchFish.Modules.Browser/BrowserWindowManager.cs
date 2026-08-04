@@ -123,9 +123,13 @@ public sealed class BrowserWindowManager : IDisposable
         {
             window = new BrowserWindow(site.Id);
             window.LayoutStateChanged += OnWindowStateChanged;
+            window.ConfigurationChanged += () => _stateChanged?.Invoke();
             _windows[site.Id] = window;
         }
-        await window.ApplyAsync(site, await _environment.Value);
+        var environment = await _environment.Value;
+        var applyTask = window.ApplyAsync(site, environment);
+        if (show) window.ShowAndActivate();
+        await applyTask;
         if (show) window.ShowAndActivate();
     }
 

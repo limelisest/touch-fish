@@ -90,7 +90,7 @@
                         <StackPanel>
                             <TextBlock Style="{DynamicResource SectionTitleStyle}" Text="网页信息" />
                             <TextBlock Margin="0,4,0,14" Style="{DynamicResource PageSubtitleStyle}"
-                                       Text="名称和网址修改后会自动保存并刷新对应网页窗口。" />
+                                       Text="网页名称修改后会自动保存；网址请直接在网页窗口中修改。" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="92" />
@@ -98,14 +98,10 @@
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <TextBlock Style="{DynamicResource FieldLabelStyle}" Text="名称" />
                                 <TextBox Grid.Column="1" Margin="8,4"
                                          Text="{Binding SelectedSite.Name, UpdateSourceTrigger=PropertyChanged}" />
-                                <TextBlock Grid.Row="1" Style="{DynamicResource FieldLabelStyle}" Text="网址" />
-                                <TextBox Grid.Row="1" Grid.Column="1" Margin="8,4"
-                                         Text="{Binding SelectedSite.Url, UpdateSourceTrigger=PropertyChanged}" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -114,7 +110,7 @@
                         <StackPanel>
                             <TextBlock Style="{DynamicResource SectionTitleStyle}" Text="网页窗口" />
                             <TextBlock Margin="0,4,0,14" Style="{DynamicResource PageSubtitleStyle}"
-                                       Text="每个网页分别保存透明度、置顶状态、大小和位置。" />
+                                       Text="每个网页分别保存置顶状态、自动隐藏、大小和位置；透明度在网页窗口中选择。" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="92" />
@@ -123,25 +119,12 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <TextBlock Style="{DynamicResource FieldLabelStyle}" Text="透明度" />
-                                <Grid Grid.Column="1" Margin="8,5">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="48" />
-                                    </Grid.ColumnDefinitions>
-                                    <Slider Minimum="0.25" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True"
-                                            Value="{Binding SelectedSite.WindowOpacity, Mode=TwoWay}" />
-                                    <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Text="{Binding SelectedSite.WindowOpacity, StringFormat={}{0:P0}}" />
-                                </Grid>
-                                <TextBlock Grid.Row="1" Style="{DynamicResource FieldLabelStyle}" Text="窗口" />
-                                <CheckBox Grid.Row="1" Grid.Column="1" Margin="8,8,0,5" Content="保持置顶"
+                                <TextBlock Style="{DynamicResource FieldLabelStyle}" Text="窗口" />
+                                <CheckBox Grid.Column="1" Margin="8,8,0,5" Content="保持置顶"
                                           IsChecked="{Binding SelectedSite.WindowTopmost, Mode=TwoWay}" />
-                                <TextBlock Grid.Row="2" Style="{DynamicResource FieldLabelStyle}" Text="自动隐藏" />
-                                <StackPanel Grid.Row="2" Grid.Column="1" Margin="8,5" Orientation="Horizontal">
+                                <TextBlock Grid.Row="1" Style="{DynamicResource FieldLabelStyle}" Text="自动隐藏" />
+                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,5" Orientation="Horizontal">
                                     <TextBox Width="82"
                                              Text="{Binding SelectedSite.AutoHideSeconds, UpdateSourceTrigger=PropertyChanged}" />
                                     <TextBlock Margin="9,0,0,0" VerticalAlignment="Center"
