@@ -21,7 +21,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private readonly Dictionary<nint, AutoMinimizeState> _autoMinimizeStates = [];
     private readonly HashSet<nint> _hotkeyAutoMinimizeSuppressed = [];
     private readonly Dictionary<nint, DateTimeOffset> _widgetEntryGraceUntil = [];
-    private readonly Dictionary<nint, DateTimeOffset> _widgetActivationOriginUntil = [];
+    private readonly HashSet<nint> _widgetCursorDrivenAutoMinimize = [];
     private readonly Dictionary<nint, DateTimeOffset> _lastTargetFocusSeenAt = [];
     private readonly DispatcherTimer _autoMinimizeTimer;
     private readonly DispatcherTimer _autoSaveTimer;
@@ -395,7 +395,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 _autoMinimizeStates.Remove(handle);
                 _hotkeyAutoMinimizeSuppressed.Remove(handle);
                 _widgetEntryGraceUntil.Remove(handle);
-                _widgetActivationOriginUntil.Remove(handle);
+                _widgetCursorDrivenAutoMinimize.Remove(handle);
                 _lastTargetFocusSeenAt.Remove(handle);
                 continue;
             }
@@ -403,6 +403,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             if (_windowService.IsMinimized(handle))
             {
                 state.LostFocusAt = null;
+                _widgetCursorDrivenAutoMinimize.Remove(handle);
                 if (!_widgetEntryGraceUntil.TryGetValue(handle, out var minimizedGraceUntil) ||
                     !AutoMinimizePolicy.IsEntryGraceActive(minimizedGraceUntil, now))
                 {
@@ -441,7 +442,10 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 _hotkeyAutoMinimizeSuppressed.Remove(handle);
             }
 
-            if (!AutoMinimizePolicy.CanTrackInactivity(cursorIsInsideTarget, targetHasFocus, inputMethodActive))
+            var canTrackInactivity = _widgetCursorDrivenAutoMinimize.Contains(handle)
+                ? AutoMinimizePolicy.CanTrackWidgetInactivity(cursorIsInsideTarget, inputMethodActive)
+                : AutoMinimizePolicy.CanTrackInactivity(cursorIsInsideTarget, targetHasFocus, inputMethodActive);
+            if (!canTrackInactivity)
             {
                 state.LostFocusAt = null;
                 if (cursorIsInsideTarget)
@@ -452,7 +456,8 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 continue;
             }
 
-            if (_widgetEntryGraceUntil.TryGetValue(handle, out var graceUntil) &&
+            if (state.Seconds == 0 &&
+                _widgetEntryGraceUntil.TryGetValue(handle, out var graceUntil) &&
                 FloatingWidgetActivationPolicy.IsEntryGraceActive(graceUntil, now))
             {
                 continue;
@@ -481,7 +486,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         var now = DateTimeOffset.UtcNow;
         _hotkeyAutoMinimizeSuppressed.Remove(windowHandle);
         _widgetEntryGraceUntil[windowHandle] = FloatingWidgetActivationPolicy.StartEntryGrace(now);
-        _widgetActivationOriginUntil[windowHandle] = now.AddSeconds(3);
+        _widgetCursorDrivenAutoMinimize.Add(windowHandle);
         _lastTargetFocusSeenAt[windowHandle] = now;
     }
 
@@ -504,14 +509,13 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 continue;
             }
 
-            if (_widgetActivationOriginUntil.TryGetValue(targetHandle, out var widgetOriginUntil) && now < widgetOriginUntil)
+            if (_widgetCursorDrivenAutoMinimize.Contains(targetHandle))
             {
-                _widgetActivationOriginUntil.Remove(targetHandle);
                 continue;
             }
 
-            _widgetActivationOriginUntil.Remove(targetHandle);
             _widgetEntryGraceUntil.Remove(targetHandle);
+            _widgetCursorDrivenAutoMinimize.Remove(targetHandle);
             _hotkeyAutoMinimizeSuppressed.Add(targetHandle);
             state.LostFocusAt = null;
         }
@@ -557,8 +561,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 else
                 {
                     _autoMinimizeStates[window.Handle] = new AutoMinimizeState(rule, seconds);
-                    if (!_widgetActivationOriginUntil.TryGetValue(window.Handle, out var widgetOriginUntil) ||
-                        now >= widgetOriginUntil)
+                    if (!_widgetCursorDrivenAutoMinimize.Contains(window.Handle))
                     {
                         _hotkeyAutoMinimizeSuppressed.Add(window.Handle);
                     }
@@ -571,7 +574,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             _autoMinimizeStates.Remove(staleHandle);
             _hotkeyAutoMinimizeSuppressed.Remove(staleHandle);
             _widgetEntryGraceUntil.Remove(staleHandle);
-            _widgetActivationOriginUntil.Remove(staleHandle);
+            _widgetCursorDrivenAutoMinimize.Remove(staleHandle);
             _lastTargetFocusSeenAt.Remove(staleHandle);
         }
     }
@@ -640,7 +643,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         _autoMinimizeStates.Clear();
         _hotkeyAutoMinimizeSuppressed.Clear();
         _widgetEntryGraceUntil.Clear();
-        _widgetActivationOriginUntil.Clear();
+        _widgetCursorDrivenAutoMinimize.Clear();
         _lastTargetFocusSeenAt.Clear();
         _lastHoveredWindowHandle = nint.Zero;
         _lastHoveredWindow = null;
@@ -756,7 +759,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         _floatingWidgetManager.TargetActivatedFromWidget -= OnTargetActivatedFromWidget;
         _hotkeyAutoMinimizeSuppressed.Clear();
         _widgetEntryGraceUntil.Clear();
-        _widgetActivationOriginUntil.Clear();
+        _widgetCursorDrivenAutoMinimize.Clear();
     }
 
     private sealed class AutoMinimizeState(WindowRuleItemViewModel rule, int seconds)

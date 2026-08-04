@@ -8,6 +8,11 @@ public static class AutoMinimizePolicy
         bool inputMethodActive) =>
         !cursorInsideTarget && !targetHasFocus && !inputMethodActive;
 
+    public static bool CanTrackWidgetInactivity(
+        bool cursorInsideTarget,
+        bool inputMethodActive) =>
+        !cursorInsideTarget && !inputMethodActive;
+
     public static bool ShouldMinimize(
         DateTimeOffset? inactiveSince,
         int seconds,

@@ -65,13 +65,15 @@ public sealed class BrowserWindowManager : IDisposable
         _ = SyncAsync(forceShow: false);
     }
 
-    public async Task OpenAsync(BrowserSiteItemViewModel site)
+    public Task OpenAsync(BrowserSiteItemViewModel site) => OpenAsync(site, openedFromWidget: false);
+
+    private async Task OpenAsync(BrowserSiteItemViewModel site, bool openedFromWidget)
     {
         if (!_featureEnabled || !site.IsEnabled) return;
         await _syncLock.WaitAsync();
         try
         {
-            await EnsureWindowAsync(site, show: true);
+            await EnsureWindowAsync(site, show: true, openedFromWidget);
             SyncWidget(site);
         }
         finally
@@ -114,7 +116,10 @@ public sealed class BrowserWindowManager : IDisposable
         }
     }
 
-    private async Task EnsureWindowAsync(BrowserSiteItemViewModel site, bool show)
+    private async Task EnsureWindowAsync(
+        BrowserSiteItemViewModel site,
+        bool show,
+        bool openedFromWidget = false)
     {
         if (!_windows.TryGetValue(site.Id, out var window))
         {
@@ -125,9 +130,18 @@ public sealed class BrowserWindowManager : IDisposable
         }
         var environment = await _environment.Value;
         var applyTask = window.ApplyAsync(site, environment);
-        if (show) window.ShowAndActivate();
+        if (show)
+        {
+            if (openedFromWidget)
+            {
+                _widgetGraceUntil[site.Id] =
+                    FloatingWidgetActivationPolicy.StartEntryGrace(DateTimeOffset.UtcNow);
+                _outsideSince[site.Id] = null;
+            }
+
+            window.ShowAndActivate();
+        }
         await applyTask;
-        if (show) window.ShowAndActivate();
     }
 
     private void SyncWidget(BrowserSiteItemViewModel site)
@@ -138,12 +152,7 @@ public sealed class BrowserWindowManager : IDisposable
             widget.SetInitialPosition(
                 site.FloatingWidgetLeft ?? 80 + _widgets.Count * 14,
                 site.FloatingWidgetTop ?? 80 + _widgets.Count * 48);
-            widget.ActivationRequested += () =>
-            {
-                _widgetGraceUntil[site.Id] =
-                    FloatingWidgetActivationPolicy.StartEntryGrace(DateTimeOffset.UtcNow);
-                _ = OpenAsync(site);
-            };
+            widget.ActivationRequested += () => _ = OpenAsync(site, openedFromWidget: true);
             widget.PositionChanged += (left, top) =>
             {
                 site.FloatingWidgetLeft = left;

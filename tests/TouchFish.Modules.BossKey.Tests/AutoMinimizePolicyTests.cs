@@ -31,6 +31,20 @@ public sealed class AutoMinimizePolicyTests
             inputMethodActive: false));
     }
 
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    public void WidgetActivationTracksCursorLeavingWithoutRequiringFocusLoss(
+        bool cursorInsideTarget,
+        bool inputMethodActive,
+        bool expected)
+    {
+        Assert.Equal(expected, AutoMinimizePolicy.CanTrackWidgetInactivity(
+            cursorInsideTarget,
+            inputMethodActive));
+    }
+
     [Fact]
     public void MinimizesWhenConfiguredSecondsHaveElapsed()
     {
