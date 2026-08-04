@@ -142,19 +142,31 @@ public partial class BrowserViewModel : ObservableObject, IDisposable
         _saveTimer.Start();
     }
 
-    private Task SaveAsync() => _store.SaveAsync(new BrowserSettings
+    private BrowserSettings CreateSettings() => new()
     {
         Sites = Sites.Select(site => site.ToModel()).ToList()
-    });
+    };
+
+    private Task SaveAsync() => _store.SaveAsync(CreateSettings());
 
     public void Shutdown()
     {
         _saveTimer.Stop();
-        if (_initialized)
+        try
         {
-            SaveAsync().GetAwaiter().GetResult();
+            if (_initialized)
+            {
+                _store.SaveSynchronously(CreateSettings());
+            }
         }
-        _windowManager.Shutdown();
+        catch
+        {
+            // A settings write failure must never prevent WebView2 windows from closing.
+        }
+        finally
+        {
+            _windowManager.Shutdown();
+        }
     }
 
     public void Dispose()

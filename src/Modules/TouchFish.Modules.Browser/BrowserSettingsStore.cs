@@ -23,7 +23,8 @@ public sealed class BrowserSettingsStore
         try
         {
             await using var stream = File.OpenRead(_path);
-            return await JsonSerializer.DeserializeAsync<BrowserSettings>(stream, Options) ?? new BrowserSettings();
+            return await JsonSerializer.DeserializeAsync<BrowserSettings>(stream, Options).ConfigureAwait(false) ??
+                   new BrowserSettings();
         }
         catch
         {
@@ -33,14 +34,33 @@ public sealed class BrowserSettingsStore
 
     public async Task SaveAsync(BrowserSettings settings)
     {
-        await _saveLock.WaitAsync();
+        await _saveLock.WaitAsync().ConfigureAwait(false);
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             var temporary = $"{_path}.tmp";
             await using (var stream = File.Create(temporary))
             {
-                await JsonSerializer.SerializeAsync(stream, settings, Options);
+                await JsonSerializer.SerializeAsync(stream, settings, Options).ConfigureAwait(false);
+            }
+            File.Move(temporary, _path, true);
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
+    }
+
+    public void SaveSynchronously(BrowserSettings settings)
+    {
+        _saveLock.Wait();
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+            var temporary = $"{_path}.tmp";
+            using (var stream = File.Create(temporary))
+            {
+                JsonSerializer.Serialize(stream, settings, Options);
             }
             File.Move(temporary, _path, true);
         }
