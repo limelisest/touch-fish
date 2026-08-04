@@ -6,7 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>TouchFish.App</RootNamespace>
     <AssemblyName>TouchFish</AssemblyName>
-    <Version>0.12.5</Version>
+    <Version>0.13.0</Version>
     <Product>TouchFish</Product>
     <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -23,6 +23,7 @@
     <ProjectReference Include="..\TouchFish.Contracts\TouchFish.Contracts.csproj" />
     <ProjectReference Include="..\TouchFish.Platform.Windows\TouchFish.Platform.Windows.csproj" />
     <ProjectReference Include="..\Modules\TouchFish.Modules.BossKey\TouchFish.Modules.BossKey.csproj" />
+    <ProjectReference Include="..\Modules\TouchFish.Modules.Browser\TouchFish.Modules.Browser.csproj" />
     <ProjectReference Include="..\Modules\TouchFish.Modules.Reader\TouchFish.Modules.Reader.csproj" />
   </ItemGroup>
 </Project>

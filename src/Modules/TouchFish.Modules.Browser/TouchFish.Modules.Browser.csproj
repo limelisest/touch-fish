@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>TouchFish.Modules.Browser</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Web.WebView2" />
+    <ProjectReference Include="..\..\TouchFish.Contracts\TouchFish.Contracts.csproj" />
+    <ProjectReference Include="..\..\TouchFish.UI.FloatingWidgets\TouchFish.UI.FloatingWidgets.csproj" />
+  </ItemGroup>
+</Project>

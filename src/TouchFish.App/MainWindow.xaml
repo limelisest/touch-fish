@@ -113,6 +113,21 @@
                                           ToolTip="看书功能总开关" />
                             </Grid>
                         </ListBoxItem>
+                        <ListBoxItem Style="{StaticResource NavigationItemStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource NavigationIconStyle}" Text="&#xE774;" />
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="Medium" Text="浏览器" />
+                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
+                                          Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding BrowserFeatureEnabled, Mode=TwoWay}"
+                                          ToolTip="浏览器功能总开关" />
+                            </Grid>
+                        </ListBoxItem>
                     </ListBox>
 
                     <ListBox x:Name="SettingsNavigation" Grid.Row="2"

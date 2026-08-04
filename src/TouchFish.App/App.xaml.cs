@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchFish.Contracts;
 using TouchFish.Modules.BossKey;
+using TouchFish.Modules.Browser;
 using TouchFish.Modules.Reader;
 using TouchFish.Platform.Windows;
 
@@ -18,6 +19,8 @@ public partial class App : System.Windows.Application
     private SystemThemeService? _themeService;
     private TrayIconService? _trayIcon;
     private ReaderWindowManager? _readerWindowManager;
+    private BrowserWindowManager? _browserWindowManager;
+    private BrowserViewModel? _browserViewModel;
     private bool _exitRequested;
     private int _fatalReported;
 
@@ -50,6 +53,7 @@ public partial class App : System.Windows.Application
             builder.Services.AddSingleton<IToolWindowRegistry, ToolWindowRegistry>();
             builder.Services.AddBossKeyModule();
             builder.Services.AddReaderModule();
+            builder.Services.AddBrowserModule();
             builder.Services.AddSingleton<AppSettingsStore>();
             builder.Services.AddSingleton<StartupTaskService>();
             builder.Services.AddSingleton<SettingsViewModel>();
@@ -61,10 +65,14 @@ public partial class App : System.Windows.Application
             var bossKeyViewModel = _host.Services.GetRequiredService<BossKeyViewModel>();
             var readerViewModel = _host.Services.GetRequiredService<ReaderViewModel>();
             _readerWindowManager = _host.Services.GetRequiredService<ReaderWindowManager>();
+            _browserWindowManager = _host.Services.GetRequiredService<BrowserWindowManager>();
+            var browserViewModel = _host.Services.GetRequiredService<BrowserViewModel>();
+            _browserViewModel = browserViewModel;
             var settingsViewModel = _host.Services.GetRequiredService<SettingsViewModel>();
             await settingsViewModel.InitializeAsync();
             await bossKeyViewModel.InitializeAsync();
             await readerViewModel.InitializeAsync();
+            await browserViewModel.InitializeAsync();
 
             var window = _host.Services.GetRequiredService<MainWindow>();
             MainWindow = window;
@@ -82,7 +90,7 @@ public partial class App : System.Windows.Application
             _trayIcon = new TrayIconService(window, () =>
             {
                 _exitRequested = true;
-                PrepareReaderShutdown();
+                PrepareToolWindowShutdown();
                 Shutdown();
             });
             var silent = e.Args.Any(argument =>
@@ -123,7 +131,7 @@ public partial class App : System.Windows.Application
             MessageBoxButton.OK,
             MessageBoxImage.Error);
         _exitRequested = true;
-        PrepareReaderShutdown();
+        PrepareToolWindowShutdown();
         Shutdown(-1);
     }
 
@@ -199,7 +207,7 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private void PrepareReaderShutdown()
+    private void PrepareToolWindowShutdown()
     {
         try
         {
@@ -209,17 +217,33 @@ public partial class App : System.Windows.Application
         {
             // Shutdown must continue even if a tool window has already been destroyed by WPF.
         }
+
+        try
+        {
+            if (_browserViewModel is not null)
+            {
+                _browserViewModel.Shutdown();
+            }
+            else
+            {
+                _browserWindowManager?.Shutdown();
+            }
+        }
+        catch
+        {
+            // Browser windows may already be destroyed during WPF shutdown.
+        }
     }
 
     protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
     {
-        PrepareReaderShutdown();
+        PrepareToolWindowShutdown();
         base.OnSessionEnding(e);
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
-        PrepareReaderShutdown();
+        PrepareToolWindowShutdown();
         _trayIcon?.Dispose();
         _themeService?.Dispose();
 

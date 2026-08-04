@@ -6,4 +6,5 @@ public sealed class TouchFishAppSettings
     public bool SilentStartup { get; set; }
     public bool BossKeyFeatureEnabled { get; set; } = true;
     public bool ReaderFeatureEnabled { get; set; } = true;
+    public bool BrowserFeatureEnabled { get; set; } = true;
 }

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TouchFish.Contracts;
 using TouchFish.Modules.BossKey;
+using TouchFish.Modules.Browser;
 using TouchFish.Modules.Reader;
 
 namespace TouchFish.App;
@@ -12,7 +13,8 @@ public partial class SettingsViewModel(
     AppSettingsStore settingsStore,
     StartupTaskService startupTaskService,
     BossKeyViewModel bossKeyViewModel,
-    ReaderWindowManager readerWindowManager) : ObservableObject
+    ReaderWindowManager readerWindowManager,
+    BrowserViewModel browserViewModel) : ObservableObject
 {
     private bool _savedAutoStartEnabled;
     private bool _savedSilentStartup;
@@ -22,6 +24,7 @@ public partial class SettingsViewModel(
     [ObservableProperty] private bool _silentStartup;
     [ObservableProperty] private bool _bossKeyFeatureEnabled = true;
     [ObservableProperty] private bool _readerFeatureEnabled = true;
+    [ObservableProperty] private bool _browserFeatureEnabled = true;
     [ObservableProperty] private string _statusText = "";
 
     public string Version { get; } = Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "未知";
@@ -35,10 +38,12 @@ public partial class SettingsViewModel(
         SilentStartup = settings.SilentStartup;
         BossKeyFeatureEnabled = settings.BossKeyFeatureEnabled;
         ReaderFeatureEnabled = settings.ReaderFeatureEnabled;
+        BrowserFeatureEnabled = settings.BrowserFeatureEnabled;
         _savedAutoStartEnabled = settings.AutoStartEnabled;
         _savedSilentStartup = settings.SilentStartup;
         bossKeyViewModel.SetFeatureEnabled(BossKeyFeatureEnabled);
         readerWindowManager.SetFeatureEnabled(ReaderFeatureEnabled);
+        browserViewModel.SetFeatureEnabled(BrowserFeatureEnabled);
         _initializing = false;
     }
 
@@ -56,12 +61,20 @@ public partial class SettingsViewModel(
         _ = SaveFeatureTogglesAsync();
     }
 
+    partial void OnBrowserFeatureEnabledChanged(bool value)
+    {
+        if (_initializing) return;
+        browserViewModel.SetFeatureEnabled(value);
+        _ = SaveFeatureTogglesAsync();
+    }
+
     private TouchFishAppSettings CreateSettings() => new()
     {
         AutoStartEnabled = AutoStartEnabled,
         SilentStartup = SilentStartup,
         BossKeyFeatureEnabled = BossKeyFeatureEnabled,
-        ReaderFeatureEnabled = ReaderFeatureEnabled
+        ReaderFeatureEnabled = ReaderFeatureEnabled,
+        BrowserFeatureEnabled = BrowserFeatureEnabled
     };
 
     private async Task SaveFeatureTogglesAsync()

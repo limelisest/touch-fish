@@ -13,6 +13,7 @@ public sealed class TouchFishAppSettingsTests
 
         Assert.True(settings.BossKeyFeatureEnabled);
         Assert.True(settings.ReaderFeatureEnabled);
+        Assert.True(settings.BrowserFeatureEnabled);
     }
 
     [Fact]
@@ -25,5 +26,6 @@ public sealed class TouchFishAppSettingsTests
         Assert.NotNull(settings);
         Assert.True(settings.BossKeyFeatureEnabled);
         Assert.True(settings.ReaderFeatureEnabled);
+        Assert.True(settings.BrowserFeatureEnabled);
     }
 }

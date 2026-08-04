@@ -57,22 +57,11 @@
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Style="{DynamicResource SectionTitleStyle}" Text="窗口列表" />
-                            <TextBlock Margin="0,3,0,0" Style="{DynamicResource FieldLabelStyle}"
-                                       Text="拖入或添加需要管理的应用窗口" />
-                        </StackPanel>
-                        <Border Grid.Column="1" Padding="8,3" CornerRadius="10"
-                                Background="{DynamicResource SurfaceAlternateBrush}">
-                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                                       Text="{Binding Windows.Count, StringFormat={}{0} 项}" />
-                        </Border>
-                    </Grid>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Style="{DynamicResource SectionTitleStyle}" Text="窗口列表" />
+                        <TextBlock Margin="0,3,0,0" Style="{DynamicResource FieldLabelStyle}"
+                                   Text="拖入或添加需要管理的应用窗口" />
+                    </StackPanel>
 
                     <ListBox Grid.Row="1" Style="{DynamicResource ModernListBoxStyle}"
                              ItemContainerStyle="{DynamicResource ModernListItemStyle}"

@@ -9,6 +9,7 @@
   <Folder Name="/src/Modules/">
     <Project Path="src/Modules/TouchFish.Modules.BossKey.Core/TouchFish.Modules.BossKey.Core.csproj" />
     <Project Path="src/Modules/TouchFish.Modules.BossKey/TouchFish.Modules.BossKey.csproj" />
+    <Project Path="src/Modules/TouchFish.Modules.Browser/TouchFish.Modules.Browser.csproj" />
     <Project Path="src/Modules/TouchFish.Modules.Reader.Core/TouchFish.Modules.Reader.Core.csproj" />
     <Project Path="src/Modules/TouchFish.Modules.Reader/TouchFish.Modules.Reader.csproj" />
   </Folder>
