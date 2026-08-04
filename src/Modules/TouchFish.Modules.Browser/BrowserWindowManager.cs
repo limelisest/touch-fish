@@ -17,6 +17,7 @@ public sealed class BrowserWindowManager : IDisposable
     private readonly Dictionary<Guid, DateTimeOffset?> _outsideSince = [];
     private readonly Dictionary<Guid, DateTimeOffset> _widgetGraceUntil = [];
     private readonly Dictionary<Guid, DateTimeOffset> _lastTargetFocusSeenAt = [];
+    private readonly Dictionary<Guid, InputMethodProtectionReason> _inputMethodProtectionStates = [];
     private readonly SemaphoreSlim _syncLock = new(1, 1);
     private readonly Lazy<Task<CoreWebView2Environment>> _environment;
     private IReadOnlyList<BrowserSiteItemViewModel> _sites = [];
@@ -98,6 +99,7 @@ public sealed class BrowserWindowManager : IDisposable
                 _windows.Remove(id);
                 _outsideSince.Remove(id);
                 _lastTargetFocusSeenAt.Remove(id);
+                _inputMethodProtectionStates.Remove(id);
             }
             foreach (var id in _widgets.Keys.Where(id => !activeIds.Contains(id)).ToArray()) CloseWidget(id);
 
@@ -200,10 +202,18 @@ public sealed class BrowserWindowManager : IDisposable
             var targetRecentlyFocused = targetHasFocus ||
                                         (_lastTargetFocusSeenAt.TryGetValue(site.Id, out var lastFocusSeenAt) &&
                                          now - lastFocusSeenAt <= InputMethodAssociationGrace);
-            var inputMethodActive = _windowService.IsInputMethodActiveForTarget(handle) ||
-                                    (targetRecentlyFocused &&
-                                     (_windowService.IsInputMethodWindowForTarget(handle, foregroundWindow) ||
-                                      _windowService.IsInputMethodWindowForTarget(handle, cursorWindow)));
+            var inputMethodReason = InputMethodProtectionPolicy.Resolve(
+                _windowService.IsInputMethodActiveForTarget(handle),
+                targetRecentlyFocused,
+                _windowService.IsInputMethodWindowForTarget(handle, foregroundWindow),
+                _windowService.IsInputMethodWindowForTarget(handle, cursorWindow));
+            UpdateInputMethodProtectionState(site, inputMethodReason);
+            var inputMethodActive = inputMethodReason != InputMethodProtectionReason.None;
+            if (inputMethodActive)
+            {
+                _lastTargetFocusSeenAt[site.Id] = now;
+            }
+
             var cursorInside = _windowService.IsWindowRelated(handle, cursorWindow);
             if (cursorInside || inputMethodActive)
             {
@@ -230,6 +240,31 @@ public sealed class BrowserWindowManager : IDisposable
         }
     }
 
+    private void UpdateInputMethodProtectionState(
+        BrowserSiteItemViewModel site,
+        InputMethodProtectionReason reason)
+    {
+        var previous = _inputMethodProtectionStates.GetValueOrDefault(site.Id);
+        if (previous == reason)
+        {
+            return;
+        }
+
+        if (reason == InputMethodProtectionReason.None)
+        {
+            _inputMethodProtectionStates.Remove(site.Id);
+            RuntimeDiagnosticLog.Write(
+                "Browser",
+                $"IME protection OFF: site={site.Name}, id={site.Id}");
+            return;
+        }
+
+        _inputMethodProtectionStates[site.Id] = reason;
+        RuntimeDiagnosticLog.Write(
+            "Browser",
+            $"IME protection ON: site={site.Name}, id={site.Id}, reason={reason}");
+    }
+
     private void CloseWidget(Guid id)
     {
         if (!_widgets.Remove(id, out var widget)) return;
@@ -247,6 +282,7 @@ public sealed class BrowserWindowManager : IDisposable
         _outsideSince.Clear();
         _widgetGraceUntil.Clear();
         _lastTargetFocusSeenAt.Clear();
+        _inputMethodProtectionStates.Clear();
     }
 
     public void Shutdown()

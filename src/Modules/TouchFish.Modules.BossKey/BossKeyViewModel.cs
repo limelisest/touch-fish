@@ -23,6 +23,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
     private readonly Dictionary<nint, DateTimeOffset> _widgetEntryGraceUntil = [];
     private readonly HashSet<nint> _widgetCursorDrivenAutoMinimize = [];
     private readonly Dictionary<nint, DateTimeOffset> _lastTargetFocusSeenAt = [];
+    private readonly Dictionary<nint, InputMethodProtectionReason> _inputMethodProtectionStates = [];
     private readonly DispatcherTimer _autoMinimizeTimer;
     private readonly DispatcherTimer _autoSaveTimer;
     private DateTimeOffset _lastAutoMinimizeRefresh = DateTimeOffset.MinValue;
@@ -397,6 +398,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
                 _widgetEntryGraceUntil.Remove(handle);
                 _widgetCursorDrivenAutoMinimize.Remove(handle);
                 _lastTargetFocusSeenAt.Remove(handle);
+                _inputMethodProtectionStates.Remove(handle);
                 continue;
             }
 
@@ -404,6 +406,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             {
                 state.LostFocusAt = null;
                 _widgetCursorDrivenAutoMinimize.Remove(handle);
+                _inputMethodProtectionStates.Remove(handle);
                 if (!_widgetEntryGraceUntil.TryGetValue(handle, out var minimizedGraceUntil) ||
                     !AutoMinimizePolicy.IsEntryGraceActive(minimizedGraceUntil, now))
                 {
@@ -425,10 +428,13 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             var targetRecentlyFocused = targetHasFocus ||
                                         (_lastTargetFocusSeenAt.TryGetValue(handle, out var lastFocusSeenAt) &&
                                          now - lastFocusSeenAt <= InputMethodAssociationGrace);
-            var inputMethodActive = _windowService.IsInputMethodActiveForTarget(handle) ||
-                                    (targetRecentlyFocused &&
-                                     (_windowService.IsInputMethodWindowForTarget(handle, foregroundWindowHandle) ||
-                                      _windowService.IsInputMethodWindowForTarget(handle, windowUnderCursor)));
+            var inputMethodReason = InputMethodProtectionPolicy.Resolve(
+                _windowService.IsInputMethodActiveForTarget(handle),
+                targetRecentlyFocused,
+                _windowService.IsInputMethodWindowForTarget(handle, foregroundWindowHandle),
+                _windowService.IsInputMethodWindowForTarget(handle, windowUnderCursor));
+            UpdateInputMethodProtectionState(handle, state.Rule.Name, inputMethodReason);
+            var inputMethodActive = inputMethodReason != InputMethodProtectionReason.None;
             if (inputMethodActive)
             {
                 _lastTargetFocusSeenAt[handle] = now;
@@ -476,6 +482,32 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             _hotkeyAutoMinimizeSuppressed.Add(handle);
             state.LostFocusAt = null;
         }
+    }
+
+    private void UpdateInputMethodProtectionState(
+        nint windowHandle,
+        string ruleName,
+        InputMethodProtectionReason reason)
+    {
+        var previous = _inputMethodProtectionStates.GetValueOrDefault(windowHandle);
+        if (previous == reason)
+        {
+            return;
+        }
+
+        if (reason == InputMethodProtectionReason.None)
+        {
+            _inputMethodProtectionStates.Remove(windowHandle);
+            RuntimeDiagnosticLog.Write(
+                "BossKey",
+                $"IME protection OFF: rule={ruleName}, handle=0x{windowHandle:X}");
+            return;
+        }
+
+        _inputMethodProtectionStates[windowHandle] = reason;
+        RuntimeDiagnosticLog.Write(
+            "BossKey",
+            $"IME protection ON: rule={ruleName}, handle=0x{windowHandle:X}, reason={reason}");
     }
 
     private void OnTargetActivatedFromWidget(nint windowHandle)
@@ -573,6 +605,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
             _widgetEntryGraceUntil.Remove(staleHandle);
             _widgetCursorDrivenAutoMinimize.Remove(staleHandle);
             _lastTargetFocusSeenAt.Remove(staleHandle);
+            _inputMethodProtectionStates.Remove(staleHandle);
         }
     }
 
@@ -642,6 +675,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         _widgetEntryGraceUntil.Clear();
         _widgetCursorDrivenAutoMinimize.Clear();
         _lastTargetFocusSeenAt.Clear();
+        _inputMethodProtectionStates.Clear();
         _lastHoveredWindowHandle = nint.Zero;
         _lastHoveredWindow = null;
         _lastForegroundWindowHandle = nint.Zero;
@@ -757,6 +791,7 @@ public partial class BossKeyViewModel : ObservableObject, IDisposable
         _hotkeyAutoMinimizeSuppressed.Clear();
         _widgetEntryGraceUntil.Clear();
         _widgetCursorDrivenAutoMinimize.Clear();
+        _inputMethodProtectionStates.Clear();
     }
 
     private sealed class AutoMinimizeState(WindowRuleItemViewModel rule, int seconds)
