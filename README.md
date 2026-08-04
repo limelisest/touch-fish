@@ -1,6 +1,6 @@
 # TouchFish
 
-TouchFish 是一个可扩展的 Windows 摸鱼工具集合，当前包含**老板键**与**看书**模块。
+TouchFish 是一个可扩展的 Windows 摸鱼工具集合，当前包含**老板键**、**看书**与**浏览器**模块。
 
 ## 当前功能
 
@@ -13,7 +13,7 @@ TouchFish 是一个可扩展的 Windows 摸鱼工具集合，当前包含**老�
 - 关闭设置窗口后驻留系统托盘
 - 可靠跟随 Windows 应用浅色/深色模式，并在系统主题变化时实时切换
 - 支持调整目标顺序：列表顶部的窗口最后恢复并显示在最上层
-- 每个目标可独立开关光标移开自动最小化，默认 60 秒；光标位于目标或同进程/所属衍生窗口内会重置计时，0 秒在光标移开后立即最小化，仅从小悬浮窗进入目标时保留 1 秒过渡保护
+- 每个目标可独立开关光标移开自动最小化，默认 60 秒；只按光标屏幕坐标是否位于目标窗口矩形内判断进入/离开，0 秒在光标移开后立即最小化，仅从小悬浮窗进入目标时保留最短 1 秒显示保护
 - 每个目标可独立启用 120 × 40 悬浮窗，支持点击或停留 0.3 秒触发；停留计时期间按下鼠标只进入拖动，不触发目标；并支持高 DPI 拖动、屏幕边缘吸附、多个小悬浮窗之间的吸附对齐，且不会出现在 Alt+Tab 列表
 - 默认以普通权限运行，仅修改任务计划中的开机启动选项时请求管理员权限
 - 左侧名称列表、右侧详情的管理布局
@@ -21,6 +21,7 @@ TouchFish 是一个可扩展的 Windows 摸鱼工具集合，当前包含**老�
 - 导入 TXT 小说，自动识别 UTF-8/GB18030 等常见编码并解析中英文章节，支持修改并持久化书名
 - 使用无标题栏、可调整大小和置顶的阅读悬浮窗；正文不可选中并可从任意正文区域拖动窗口，通过 Windows 字体选择器设置字体和字号，并支持行间距、段落间距与真正的窗口透明度调节
 - 阅读模块复用 120 × 40 小悬浮窗，支持点击或停留 0.3 秒触发；小窗与阅读窗口位置独立，阅读窗口支持 1 秒最短显示保护和可配置离开回收时间
+- 浏览器模块支持多个独立网页配置、共享 WebView2 登录状态、独立小悬浮窗、窗口位置与尺寸记忆、置顶、四档整窗透明度、四边/四角缩放和按光标离开的自动隐藏
 - 开机自启动、静默启动以及版本、编译时间和作者信息
 
 悬浮触发、拖动、最短显示保护和离开计时的固定规范见 [`docs/floating-widget-rules.md`](docs/floating-widget-rules.md)。
@@ -31,6 +32,11 @@ TouchFish 会读取窗口的 `System.AppUserModel.ID` 与 `System.AppUserModel.R
 将 Telegram 安装为 Web App，并在重启命令中提供 `--app-id`，TouchFish 会优先保存这个稳定 ID，而不是依赖窗口句柄或聊天标题。
 
 如果“浏览器 App ID”为空，规则会回退到：程序路径 + 窗口类 + 标题包含。此时建议把标题关键词修改为 `Telegram` 等稳定内容。
+
+## 发布包
+
+- `portable`：自包含便携版，无需安装 .NET 10 Desktop Runtime；浏览器功能仍需系统安装 Microsoft Edge WebView2 Runtime。
+- `lite`：轻量框架依赖版，需要安装 [.NET 10 Desktop Runtime x64](https://aka.ms/dotnet/10.0/windowsdesktop-runtime-win-x64.exe)；浏览器功能需要 Microsoft Edge WebView2 Runtime。
 
 ## 开发
 
@@ -55,7 +61,8 @@ dotnet run --project src/TouchFish.App
 
 - `TouchFish.Contracts`：共享契约
 - `TouchFish.Platform.Windows`：Win32 能力
-- `TouchFish.UI.FloatingWidgets`：老板键和看书共用的小悬浮窗
+- `TouchFish.UI.FloatingWidgets`：老板键、看书和浏览器共用的小悬浮窗
 - `TouchFish.Modules.BossKey`：老板键业务和界面
 - `TouchFish.Modules.Reader`：TXT 书库、章节解析与阅读界面
+- `TouchFish.Modules.Browser`：多网页配置、WebView2 窗口与自动隐藏
 - `TouchFish.App`：程序入口、分页导航、设置与依赖装配
