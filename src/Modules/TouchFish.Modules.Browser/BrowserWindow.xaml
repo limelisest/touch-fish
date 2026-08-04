@@ -54,12 +54,13 @@
                               Height="32"
                               MinHeight="32"
                               Margin="0,0,6,0"
+                              FontSize="11"
                               ToolTip="窗口透明度"
                               SelectionChanged="OpacitySelector_OnSelectionChanged">
-                        <ComboBoxItem Content="100%" Tag="1" />
-                        <ComboBoxItem Content="75%" Tag="0.75" />
-                        <ComboBoxItem Content="50%" Tag="0.5" />
-                        <ComboBoxItem Content="25%" Tag="0.25" />
+                        <ComboBoxItem Content="100%" Tag="1" FontSize="11" />
+                        <ComboBoxItem Content="75%" Tag="0.75" FontSize="11" />
+                        <ComboBoxItem Content="50%" Tag="0.5" FontSize="11" />
+                        <ComboBoxItem Content="25%" Tag="0.25" FontSize="11" />
                     </ComboBox>
 
                     <Button Grid.Column="2"

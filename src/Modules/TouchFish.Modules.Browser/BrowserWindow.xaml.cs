@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using Color = System.Drawing.Color;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,6 +12,7 @@ namespace TouchFish.Modules.Browser;
 
 public partial class BrowserWindow : Window
 {
+    private const int WindowHitTestMessage = 0x0084;
     private static readonly double[] OpacityOptions = [1, 0.75, 0.5, 0.25];
     private bool _allowClose;
     private bool _initialized;
@@ -19,13 +21,15 @@ public partial class BrowserWindow : Window
     private Point _addressPressOrigin;
     private string _currentUrl = "";
     private BrowserSiteItemViewModel? _site;
+    private HwndSource? _windowSource;
 
     public BrowserWindow(Guid siteId)
     {
         SiteId = siteId;
         InitializeComponent();
         Browser.DefaultBackgroundColor = Color.Transparent;
-        SourceInitialized += (_, _) => FloatingWindowStyles.HideFromAltTab(this);
+        SourceInitialized += OnSourceInitialized;
+        Closed += OnClosed;
         Closing += OnClosing;
         LocationChanged += (_, _) => LayoutStateChanged?.Invoke(this);
         SizeChanged += (_, _) => LayoutStateChanged?.Invoke(this);
@@ -115,6 +119,59 @@ public partial class BrowserWindow : Window
         if (!AddressBox.IsKeyboardFocusWithin) AddressBox.Text = source;
         if (_site is not null) _site.Url = source;
         ConfigurationChanged?.Invoke();
+    }
+
+    private void OnSourceInitialized(object? sender, EventArgs e)
+    {
+        FloatingWindowStyles.HideFromAltTab(this);
+        _windowSource = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+        _windowSource?.AddHook(WindowMessageHook);
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        _windowSource?.RemoveHook(WindowMessageHook);
+        _windowSource = null;
+    }
+
+    private nint WindowMessageHook(
+        nint windowHandle,
+        int message,
+        nint wParam,
+        nint lParam,
+        ref bool handled)
+    {
+        if (message != WindowHitTestMessage ||
+            !NativeMethods.GetCursorPos(out var point) ||
+            !NativeMethods.GetWindowRect(windowHandle, out var rect))
+        {
+            return nint.Zero;
+        }
+
+        const int border = 8;
+        var left = point.X < rect.Left + border;
+        var right = point.X >= rect.Right - border;
+        var top = point.Y < rect.Top + border;
+        var bottom = point.Y >= rect.Bottom - border;
+        var result = (left, right, top, bottom) switch
+        {
+            (true, _, true, _) => 13,  // HTTOPLEFT
+            (_, true, true, _) => 14,  // HTTOPRIGHT
+            (true, _, _, true) => 16,  // HTBOTTOMLEFT
+            (_, true, _, true) => 17,  // HTBOTTOMRIGHT
+            (true, _, _, _) => 10,     // HTLEFT
+            (_, true, _, _) => 11,     // HTRIGHT
+            (_, _, true, _) => 12,     // HTTOP
+            (_, _, _, true) => 15,     // HTBOTTOM
+            _ => 0
+        };
+        if (result == 0)
+        {
+            return nint.Zero;
+        }
+
+        handled = true;
+        return result;
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -229,5 +286,32 @@ public partial class BrowserWindow : Window
         return Uri.TryCreate($"https://{trimmed}", UriKind.Absolute, out uri)
             ? uri.AbsoluteUri
             : "https://www.bing.com";
+    }
+
+    private static class NativeMethods
+    {
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetCursorPos(out Point point);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetWindowRect(nint windowHandle, out Rect rect);
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Point
+        {
+            internal int X;
+            internal int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Rect
+        {
+            internal int Left;
+            internal int Top;
+            internal int Right;
+            internal int Bottom;
+        }
     }
 }
