@@ -68,6 +68,7 @@ public partial class App : System.Windows.Application
 
             var window = _host.Services.GetRequiredService<MainWindow>();
             MainWindow = window;
+            _themeService.Refresh();
             window.Closing += (_, args) =>
             {
                 if (_exitRequested)

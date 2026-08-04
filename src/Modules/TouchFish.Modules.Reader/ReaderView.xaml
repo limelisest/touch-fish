@@ -61,45 +61,38 @@
                              ItemsSource="{Binding Books}" SelectedItem="{Binding SelectedBook}">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="44" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="36" Height="42" CornerRadius="7"
-                                            Background="{DynamicResource SelectionBrush}">
-                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                                   FontSize="15" Foreground="{DynamicResource AccentBrush}"
-                                                   Text="&#xE82D;" />
-                                    </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Margin="0,3,0,0" FontSize="11"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   Text="TXT 本地书籍" />
-                                    </StackPanel>
-                                </Grid>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Margin="0,3,0,0" FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               Text="TXT 本地书籍" />
+                                </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <StackPanel Grid.Row="2" Margin="0,12,0,0">
-                        <TextBox Height="34" Margin="0,0,0,9" VerticalContentAlignment="Center"
-                                 ToolTip="修改当前书名"
-                                 Text="{Binding SelectedBook.Title, UpdateSourceTrigger=PropertyChanged}" />
-                        <Button HorizontalAlignment="Right" Style="{DynamicResource DangerButtonStyle}"
-                                Content="删除所选书籍" Command="{Binding DeleteBookCommand}" />
-                        <Grid Margin="0,9,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Button Margin="0,0,4,0" Content="打开目录" Command="{Binding OpenLibraryFolderCommand}" />
-                            <Button Grid.Column="1" Margin="4,0,0,0" Style="{DynamicResource PrimaryActionButtonStyle}"
+                    <Border Grid.Row="2" Margin="0,12,0,0" Style="{DynamicResource SubtleCardStyle}">
+                        <StackPanel>
+                            <TextBlock Margin="0,0,0,6" Style="{DynamicResource FieldLabelStyle}" Text="书名" />
+                            <TextBox Height="34" VerticalContentAlignment="Center"
+                                     ToolTip="修改当前书名"
+                                     Text="{Binding SelectedBook.Title, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="打开目录"
+                                        Command="{Binding OpenLibraryFolderCommand}" />
+                                <Button Grid.Column="2" Style="{DynamicResource DangerButtonStyle}"
+                                        Content="删除书籍" Command="{Binding DeleteBookCommand}" />
+                            </Grid>
+                            <Button Margin="0,10,0,0" HorizontalAlignment="Stretch"
+                                    Style="{DynamicResource PrimaryActionButtonStyle}"
                                     Content="导入 TXT" Command="{Binding ImportBookCommand}" />
-                        </Grid>
-                    </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
 

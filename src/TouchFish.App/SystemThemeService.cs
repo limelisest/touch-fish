@@ -30,6 +30,8 @@ public sealed class SystemThemeService(System.Windows.Application application) :
         application.Dispatcher.BeginInvoke(ApplyCurrentTheme);
     }
 
+    public void Refresh() => ApplyCurrentTheme();
+
     private void ApplyCurrentTheme()
     {
         var isDark = IsDarkAppMode();

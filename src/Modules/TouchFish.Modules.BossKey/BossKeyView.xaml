@@ -87,25 +87,12 @@
                              ItemsSource="{Binding Windows}" SelectedItem="{Binding SelectedWindow}">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="40" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="32" Height="32" CornerRadius="8"
-                                            Background="{DynamicResource SelectionBrush}">
-                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                                   FontSize="14" Foreground="{DynamicResource AccentBrush}"
-                                                   Text="&#xE8A5;" />
-                                    </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Margin="0,2,0,0" FontSize="11"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   Text="{Binding ProcessName}" TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                </Grid>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Margin="0,2,0,0" FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               Text="{Binding ProcessName}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
@@ -200,7 +187,7 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <TextBlock Style="{DynamicResource FieldLabelStyle}" Text="显示悬浮窗" />
-                                <CheckBox Grid.Column="1" Margin="8,5" Content="为这个窗口启用"
+                                <CheckBox Grid.Column="1" Margin="8,6,0,6" VerticalAlignment="Center" Content="启用"
                                           IsChecked="{Binding SelectedWindow.FloatingWidgetEnabled, Mode=TwoWay}" />
                                 <TextBlock Grid.Row="1" Style="{DynamicResource FieldLabelStyle}" Text="触发方式" />
                                 <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,10,0,2" Orientation="Horizontal">

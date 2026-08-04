@@ -92,9 +92,10 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Style="{StaticResource NavigationIconStyle}" Text="&#xE72E;" />
                                 <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="Medium" Text="老板键" />
-                                <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
-                                                 IsChecked="{Binding BossKeyFeatureEnabled, Mode=TwoWay}"
-                                                 ToolTip="老板键功能总开关" />
+                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
+                                          Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding BossKeyFeatureEnabled, Mode=TwoWay}"
+                                          ToolTip="老板键功能总开关" />
                             </Grid>
                         </ListBoxItem>
                         <ListBoxItem Style="{StaticResource NavigationItemStyle}">
@@ -106,9 +107,10 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Style="{StaticResource NavigationIconStyle}" Text="&#xE736;" />
                                 <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="Medium" Text="看书" />
-                                <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
-                                                 IsChecked="{Binding ReaderFeatureEnabled, Mode=TwoWay}"
-                                                 ToolTip="看书功能总开关" />
+                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
+                                          Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding ReaderFeatureEnabled, Mode=TwoWay}"
+                                          ToolTip="看书功能总开关" />
                             </Grid>
                         </ListBoxItem>
                     </ListBox>
