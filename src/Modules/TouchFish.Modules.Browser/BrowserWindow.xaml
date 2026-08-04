@@ -43,7 +43,7 @@
                             ToolTip="隐藏" Content="—" Click="Hide_OnClick" />
                 </Grid>
             </Border>
-            <wv2:WebView2 x:Name="Browser" Grid.Row="1" />
+            <wv2:WebView2CompositionControl x:Name="Browser" Grid.Row="1" />
         </Grid>
     </Border>
 </Window>

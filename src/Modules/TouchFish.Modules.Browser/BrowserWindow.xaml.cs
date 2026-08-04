@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using Color = System.Drawing.Color;
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -19,7 +18,6 @@ public partial class BrowserWindow : Window
     private bool _addressPressPending;
     private Point _addressPressOrigin;
     private string _currentUrl = "";
-    private string? _opacityScriptId;
     private BrowserSiteItemViewModel? _site;
 
     public BrowserWindow(Guid siteId)
@@ -42,12 +40,11 @@ public partial class BrowserWindow : Window
     {
         _site = site;
         _applyingSettings = true;
-        double opacity;
         try
         {
             Title = string.IsNullOrWhiteSpace(site.Name) ? "网页" : site.Name;
             var opacityIndex = FindNearestOpacityIndex(site.WindowOpacity);
-            opacity = OpacityOptions[opacityIndex];
+            var opacity = OpacityOptions[opacityIndex];
             Opacity = opacity;
             if (Math.Abs(site.WindowOpacity - opacity) > 0.001) site.WindowOpacity = opacity;
             OpacitySelector.SelectedIndex = opacityIndex;
@@ -81,7 +78,6 @@ public partial class BrowserWindow : Window
             _initialized = true;
         }
 
-        await ApplyWebOpacityAsync(opacity);
         Navigate(site.Url);
     }
 
@@ -119,38 +115,6 @@ public partial class BrowserWindow : Window
         if (!AddressBox.IsKeyboardFocusWithin) AddressBox.Text = source;
         if (_site is not null) _site.Url = source;
         ConfigurationChanged?.Invoke();
-    }
-
-    private async Task ApplyWebOpacityAsync(double opacity)
-    {
-        if (!_initialized) return;
-        var value = opacity.ToString("0.##", CultureInfo.InvariantCulture);
-        var script = $$"""
-            (() => {
-                const applyTouchFishOpacity = () => {
-                    const html = document.documentElement;
-                    if (html) {
-                        html.style.setProperty('opacity', '{{value}}', 'important');
-                        html.style.setProperty('background-color', 'transparent', 'important');
-                    }
-                    if (document.body) {
-                        document.body.style.setProperty('background-color', 'transparent', 'important');
-                    }
-                };
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', applyTouchFishOpacity, { once: true });
-                } else {
-                    applyTouchFishOpacity();
-                }
-            })();
-            """;
-        var newScriptId = await Browser.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(script);
-        if (_opacityScriptId is not null)
-        {
-            Browser.CoreWebView2.RemoveScriptToExecuteOnDocumentCreated(_opacityScriptId);
-        }
-        _opacityScriptId = newScriptId;
-        await Browser.CoreWebView2.ExecuteScriptAsync(script);
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -223,20 +187,12 @@ public partial class BrowserWindow : Window
     private void Reload_OnClick(object sender, RoutedEventArgs e) => Browser.CoreWebView2?.Reload();
     private void Hide_OnClick(object sender, RoutedEventArgs e) => Hide();
 
-    private async void OpacitySelector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void OpacitySelector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_applyingSettings || _site is null || OpacitySelector.SelectedIndex < 0) return;
         var opacity = OpacityOptions[OpacitySelector.SelectedIndex];
         Opacity = opacity;
         _site.WindowOpacity = opacity;
-        try
-        {
-            await ApplyWebOpacityAsync(opacity);
-        }
-        catch (Exception exception)
-        {
-            System.Diagnostics.Debug.WriteLine($"Unable to apply web opacity: {exception}");
-        }
         ConfigurationChanged?.Invoke();
     }
 

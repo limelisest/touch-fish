@@ -33,7 +33,7 @@ public sealed class BrowserWindowManager : IDisposable
                     "WebView2")));
         _autoHideTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
-            Interval = TimeSpan.FromMilliseconds(200)
+            Interval = TimeSpan.FromMilliseconds(50)
         };
         _autoHideTimer.Tick += OnAutoHideTick;
     }
@@ -125,9 +125,17 @@ public sealed class BrowserWindowManager : IDisposable
         }
         var environment = await _environment.Value;
         var applyTask = window.ApplyAsync(site, environment);
-        if (show) window.ShowAndActivate();
+        if (show)
+        {
+            _widgetGraceUntil[site.Id] = DateTimeOffset.Now.AddSeconds(1);
+            window.ShowAndActivate();
+        }
         await applyTask;
-        if (show) window.ShowAndActivate();
+        if (show)
+        {
+            _widgetGraceUntil[site.Id] = DateTimeOffset.Now.AddSeconds(1);
+            window.ShowAndActivate();
+        }
     }
 
     private void SyncWidget(BrowserSiteItemViewModel site)
@@ -179,8 +187,13 @@ public sealed class BrowserWindowManager : IDisposable
             if (!_windows.TryGetValue(site.Id, out var window) || !window.IsVisible) continue;
             var handle = window.Handle;
             var cursorInside = _windowService.IsWindowRelated(handle, cursorWindow);
-            if (cursorInside ||
-                _widgetGraceUntil.TryGetValue(site.Id, out var grace) && now < grace)
+            if (cursorInside)
+            {
+                _widgetGraceUntil.Remove(site.Id);
+                _outsideSince[site.Id] = null;
+                continue;
+            }
+            if (_widgetGraceUntil.TryGetValue(site.Id, out var grace) && now < grace)
             {
                 _outsideSince[site.Id] = null;
                 continue;
