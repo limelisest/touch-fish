@@ -1,70 +1,136 @@
-<Window x:Class="TouchFish.App.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="TouchFish"
-        Icon="/Assets/app-icon.ico"
-        Background="{DynamicResource AppBackgroundBrush}"
-        Width="1360" Height="860" MinWidth="1120" MinHeight="720"
-        WindowStartupLocation="CenterScreen">
-    <Window.Resources>
-        <Style x:Key="FeatureToggleStyle" TargetType="ToggleButton">
-            <Setter Property="Width" Value="42" />
-            <Setter Property="Height" Value="26" />
-            <Setter Property="Padding" Value="4,1" />
-            <Setter Property="Content" Value="关" />
-            <Setter Property="ToolTip" Value="点击启用功能" />
-            <Style.Triggers>
-                <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Content" Value="开" />
-                    <Setter Property="ToolTip" Value="点击关闭功能" />
-                </Trigger>
-            </Style.Triggers>
+<ui:FluentWindow x:Class="TouchFish.App.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="TouchFish"
+                 Icon="/Assets/app-icon.ico"
+                 Width="1360" Height="860" MinWidth="1120" MinHeight="720"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 WindowStartupLocation="CenterScreen">
+    <ui:FluentWindow.Resources>
+        <Style x:Key="NavigationListStyle" TargetType="ListBox" BasedOn="{StaticResource ModernListBoxStyle}">
+            <Setter Property="Background" Value="Transparent" />
         </Style>
-    </Window.Resources>
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="190" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Border Background="{DynamicResource SurfaceBrush}"
-                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
-            <Grid Margin="12">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <ListBox x:Name="PrimaryNavigation" BorderThickness="0"
-                         Background="Transparent" SelectedIndex="0"
-                         SelectionChanged="Navigation_OnSelectionChanged">
-                    <ListBoxItem Margin="0,0,0,5" Padding="12,7" HorizontalContentAlignment="Stretch">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock VerticalAlignment="Center" Text="老板键" />
-                            <ToggleButton Grid.Column="1" Style="{StaticResource FeatureToggleStyle}"
-                                          IsChecked="{Binding BossKeyFeatureEnabled, Mode=TwoWay}" />
-                        </Grid>
-                    </ListBoxItem>
-                    <ListBoxItem Margin="0,0,0,5" Padding="12,7" HorizontalContentAlignment="Stretch">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock VerticalAlignment="Center" Text="看书" />
-                            <ToggleButton Grid.Column="1" Style="{StaticResource FeatureToggleStyle}"
-                                          IsChecked="{Binding ReaderFeatureEnabled, Mode=TwoWay}" />
-                        </Grid>
-                    </ListBoxItem>
-                </ListBox>
-                <ListBox x:Name="SettingsNavigation" Grid.Row="1" BorderThickness="0"
-                         Background="Transparent" SelectionChanged="SettingsNavigation_OnSelectionChanged">
-                    <ListBoxItem Padding="12,10" Content="设置" />
-                </ListBox>
-            </Grid>
-        </Border>
-        <ContentControl x:Name="PageHost" Grid.Column="1" />
+        <Style x:Key="NavigationItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Margin" Value="0,0,0,5" />
+            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemBorder" Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ControlHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SelectionBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="NavigationIconStyle" TargetType="TextBlock">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+    </ui:FluentWindow.Resources>
+
+    <Grid Background="{DynamicResource AppBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="TouchFish" />
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="224" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Margin="12,8,0,12" Padding="12"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Margin="8,7,8,18">
+                        <TextBlock FontSize="17" FontWeight="SemiBold" Text="TouchFish" />
+                        <TextBlock Margin="0,3,0,0" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="轻量摸鱼工具箱" />
+                    </StackPanel>
+
+                    <ListBox x:Name="PrimaryNavigation" Grid.Row="1"
+                             Style="{StaticResource NavigationListStyle}"
+                             SelectedIndex="0"
+                             SelectionChanged="Navigation_OnSelectionChanged">
+                        <ListBoxItem Style="{StaticResource NavigationItemStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource NavigationIconStyle}" Text="&#xE72E;" />
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="Medium" Text="老板键" />
+                                <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                                 IsChecked="{Binding BossKeyFeatureEnabled, Mode=TwoWay}"
+                                                 ToolTip="老板键功能总开关" />
+                            </Grid>
+                        </ListBoxItem>
+                        <ListBoxItem Style="{StaticResource NavigationItemStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource NavigationIconStyle}" Text="&#xE736;" />
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="Medium" Text="看书" />
+                                <ui:ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                                 IsChecked="{Binding ReaderFeatureEnabled, Mode=TwoWay}"
+                                                 ToolTip="看书功能总开关" />
+                            </Grid>
+                        </ListBoxItem>
+                    </ListBox>
+
+                    <ListBox x:Name="SettingsNavigation" Grid.Row="2"
+                             Style="{StaticResource NavigationListStyle}"
+                             SelectionChanged="SettingsNavigation_OnSelectionChanged">
+                        <ListBoxItem Style="{StaticResource NavigationItemStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource NavigationIconStyle}" Text="&#xE713;" />
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontWeight="Medium" Text="设置" />
+                            </Grid>
+                        </ListBoxItem>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <ContentControl x:Name="PageHost" Grid.Column="1" />
+        </Grid>
     </Grid>
-</Window>
+</ui:FluentWindow>

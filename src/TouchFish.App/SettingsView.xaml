@@ -1,53 +1,119 @@
 <UserControl x:Class="TouchFish.App.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="{DynamicResource AppBackgroundBrush}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="24" MaxWidth="760" HorizontalAlignment="Left">
-            <TextBlock FontSize="28" FontWeight="SemiBold" Text="设置" />
-            <TextBlock Margin="0,5,0,18" Foreground="{DynamicResource TextSecondaryBrush}"
-                       Text="管理启动行为和查看应用信息。" />
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             MinWidth="700" MinHeight="500">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="28,20,28,24" MaxWidth="920" HorizontalAlignment="Left">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-            <Border Padding="18" CornerRadius="8" Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+            <StackPanel Margin="0,0,0,20">
+                <TextBlock Style="{DynamicResource PageTitleStyle}" Text="设置" />
+                <TextBlock Style="{DynamicResource PageSubtitleStyle}"
+                           Text="管理 TouchFish 的启动方式、界面外观和应用信息。" />
+            </StackPanel>
+
+            <Border Grid.Row="1" Style="{DynamicResource CardStyle}">
                 <StackPanel>
-                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="启动" />
-                    <CheckBox Margin="0,16,0,0" Content="开机自启动"
-                              IsChecked="{Binding AutoStartEnabled, Mode=TwoWay}" />
-                    <TextBlock Margin="26,4,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
-                               Text="保存此选项时会请求一次管理员权限；登录后 TouchFish 仍以普通权限运行。" />
-                    <CheckBox Margin="0,14,0,0" Content="静默启动"
-                              IsEnabled="{Binding AutoStartEnabled}"
-                              IsChecked="{Binding SilentStartup, Mode=TwoWay}" />
-                    <TextBlock Margin="26,4,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
-                               Text="仅开机自启动时隐藏主窗口；托盘、老板键和悬浮窗仍会运行。" />
-                    <Button Margin="0,18,0,0" Width="110" HorizontalAlignment="Left"
-                            Content="保存设置" Command="{Binding SaveSettingsCommand}" />
-                    <TextBlock Margin="0,10,0,0" Text="{Binding StatusText}" TextWrapping="Wrap" />
+                    <TextBlock Style="{DynamicResource SectionTitleStyle}" Text="启动" />
+                    <TextBlock Margin="0,4,0,14" Style="{DynamicResource PageSubtitleStyle}"
+                               Text="开机启动通过 Windows 计划任务实现，修改时可能请求管理员权限。" />
+
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold" Text="开机自动启动" />
+                            <TextBlock Margin="0,3,0,0" Style="{DynamicResource FieldLabelStyle}"
+                                       Text="登录 Windows 后自动运行 TouchFish" />
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                         IsChecked="{Binding AutoStartEnabled, Mode=TwoWay}" />
+                    </Grid>
+
+                    <Separator Margin="0,14" />
+
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold" Text="静默启动" />
+                            <TextBlock Margin="0,3,0,0" Style="{DynamicResource FieldLabelStyle}"
+                                       Text="启动后留在后台，不主动显示主窗口" />
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                         IsEnabled="{Binding AutoStartEnabled}"
+                                         IsChecked="{Binding SilentStartup, Mode=TwoWay}" />
+                    </Grid>
                 </StackPanel>
             </Border>
 
-            <Border Margin="0,16,0,0" Padding="18" CornerRadius="8"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+            <Border Grid.Row="2" Margin="0,14,0,0" Style="{DynamicResource CardStyle}">
                 <Grid>
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Grid.ColumnSpan="2" Margin="0,0,0,12" FontSize="16" FontWeight="SemiBold" Text="关于" />
-                    <TextBlock Grid.Row="1" Text="应用" Foreground="{DynamicResource TextSecondaryBrush}" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="TouchFish" />
-                    <TextBlock Grid.Row="2" Text="版本" Foreground="{DynamicResource TextSecondaryBrush}" />
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Version}" />
-                    <TextBlock Grid.Row="3" Text="编译时间" Foreground="{DynamicResource TextSecondaryBrush}" />
-                    <StackPanel Grid.Row="3" Grid.Column="1">
-                        <TextBlock Text="{Binding BuildTime}" />
-                        <TextBlock Margin="0,8,0,0" Text="作者：LimeLisest" />
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Style="{DynamicResource SectionTitleStyle}" Text="外观" />
+                        <TextBlock Margin="0,5,0,0" Style="{DynamicResource PageSubtitleStyle}"
+                                   Text="界面会自动跟随 Windows 的浅色或深色应用设置。" />
                     </StackPanel>
+                    <Border Grid.Column="1" Padding="10,5" VerticalAlignment="Center" CornerRadius="12"
+                            Background="{DynamicResource SuccessSurfaceBrush}">
+                        <TextBlock FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SuccessBrush}" Text="跟随系统" />
+                    </Border>
                 </Grid>
             </Border>
-        </StackPanel>
+
+            <Border Grid.Row="3" Margin="0,14,0,0" Style="{DynamicResource CardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Style="{DynamicResource SectionTitleStyle}" Text="关于 TouchFish" />
+                        <TextBlock Margin="0,5,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding Version, StringFormat=版本 {0}}" />
+                        <TextBlock Margin="0,4,0,0" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding BuildTime, StringFormat=编译于 {0}}" />
+                    </StackPanel>
+                    <Border Grid.Column="1" Width="54" Height="54" CornerRadius="14"
+                            Background="{DynamicResource SelectionBrush}">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="23" Foreground="{DynamicResource AccentBrush}"
+                                   Text="&#xE946;" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="4" Margin="0,18,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border Margin="0,0,14,0" Style="{DynamicResource StatusBarStyle}">
+                    <TextBlock VerticalAlignment="Center" FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Text="{Binding StatusText}" TextWrapping="Wrap" />
+                </Border>
+                <Button Grid.Column="1" MinWidth="116" Style="{DynamicResource PrimaryActionButtonStyle}"
+                        Content="保存设置" Command="{Binding SaveSettingsCommand}" />
+            </Grid>
+        </Grid>
     </ScrollViewer>
 </UserControl>

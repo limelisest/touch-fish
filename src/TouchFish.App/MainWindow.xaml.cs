@@ -1,12 +1,13 @@
 using System.Windows;
 using System.Windows.Controls;
+using Wpf.Ui.Controls;
 using System.Windows.Interop;
 using TouchFish.Modules.BossKey;
 using TouchFish.Modules.Reader;
 
 namespace TouchFish.App;
 
-public partial class MainWindow : Window
+public partial class MainWindow : FluentWindow
 {
     private readonly BossKeyViewModel _bossKeyViewModel;
     private readonly BossKeyView _bossKeyView;
