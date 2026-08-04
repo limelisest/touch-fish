@@ -8,19 +8,11 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Grid Margin="0,0,0,18">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel>
-                <TextBlock Style="{DynamicResource PageTitleStyle}" Text="浏览器" />
-                <TextBlock Style="{DynamicResource PageSubtitleStyle}"
-                           Text="分别显示多个网页，并为每个网页保存独立的窗口和悬浮窗设置。" />
-            </StackPanel>
-            <Button Grid.Column="1" Style="{DynamicResource PrimaryActionButtonStyle}"
-                    Content="显示所选网页" Command="{Binding OpenSelectedCommand}" />
-        </Grid>
+        <StackPanel Margin="0,0,0,18">
+            <TextBlock Style="{DynamicResource PageTitleStyle}" Text="浏览器" />
+            <TextBlock Style="{DynamicResource PageSubtitleStyle}"
+                       Text="分别显示多个网页，每个启用的网页都会自动创建独立悬浮窗。" />
+        </StackPanel>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
@@ -139,7 +131,7 @@
                         <StackPanel>
                             <TextBlock Style="{DynamicResource SectionTitleStyle}" Text="悬浮窗" />
                             <TextBlock Margin="0,4,0,14" Style="{DynamicResource PageSubtitleStyle}"
-                                       Text="为当前网页显示一个独立的快捷入口。" />
+                                       Text="网页启用后会自动显示独立悬浮窗。" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="92" />
@@ -147,13 +139,9 @@
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <TextBlock Style="{DynamicResource FieldLabelStyle}" Text="显示悬浮窗" />
-                                <CheckBox Grid.Column="1" Margin="8,6,0,6" Content="启用"
-                                          IsChecked="{Binding SelectedSite.FloatingWidgetEnabled, Mode=TwoWay}" />
-                                <TextBlock Grid.Row="1" Style="{DynamicResource FieldLabelStyle}" Text="触发方式" />
-                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,8,0,2" Orientation="Horizontal">
+                                <TextBlock Style="{DynamicResource FieldLabelStyle}" Text="触发方式" />
+                                <StackPanel Grid.Column="1" Margin="8,8,0,2" Orientation="Horizontal">
                                     <RadioButton GroupName="BrowserFloatingTrigger" Content="点击"
                                                  IsChecked="{Binding SelectedSite.IsClickTrigger, Mode=TwoWay}" />
                                     <RadioButton GroupName="BrowserFloatingTrigger" Margin="18,0,0,0"

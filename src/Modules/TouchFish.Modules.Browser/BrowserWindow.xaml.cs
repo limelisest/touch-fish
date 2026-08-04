@@ -1,5 +1,6 @@
 using System.ComponentModel;
-using System.Drawing;
+using Color = System.Drawing.Color;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -15,7 +16,10 @@ public partial class BrowserWindow : Window
     private bool _allowClose;
     private bool _initialized;
     private bool _applyingSettings;
+    private bool _addressPressPending;
+    private Point _addressPressOrigin;
     private string _currentUrl = "";
+    private string? _opacityScriptId;
     private BrowserSiteItemViewModel? _site;
 
     public BrowserWindow(Guid siteId)
@@ -38,12 +42,12 @@ public partial class BrowserWindow : Window
     {
         _site = site;
         _applyingSettings = true;
+        double opacity;
         try
         {
-            SiteTitle.Text = string.IsNullOrWhiteSpace(site.Name) ? "网页" : site.Name;
-            Title = SiteTitle.Text;
+            Title = string.IsNullOrWhiteSpace(site.Name) ? "网页" : site.Name;
             var opacityIndex = FindNearestOpacityIndex(site.WindowOpacity);
-            var opacity = OpacityOptions[opacityIndex];
+            opacity = OpacityOptions[opacityIndex];
             Opacity = opacity;
             if (Math.Abs(site.WindowOpacity - opacity) > 0.001) site.WindowOpacity = opacity;
             OpacitySelector.SelectedIndex = opacityIndex;
@@ -77,6 +81,7 @@ public partial class BrowserWindow : Window
             _initialized = true;
         }
 
+        await ApplyWebOpacityAsync(opacity);
         Navigate(site.Url);
     }
 
@@ -111,9 +116,41 @@ public partial class BrowserWindow : Window
         if (!_initialized || Browser.Source is null) return;
         var source = Browser.Source.AbsoluteUri;
         _currentUrl = source;
-        AddressBox.Text = source;
+        if (!AddressBox.IsKeyboardFocusWithin) AddressBox.Text = source;
         if (_site is not null) _site.Url = source;
         ConfigurationChanged?.Invoke();
+    }
+
+    private async Task ApplyWebOpacityAsync(double opacity)
+    {
+        if (!_initialized) return;
+        var value = opacity.ToString("0.##", CultureInfo.InvariantCulture);
+        var script = $$"""
+            (() => {
+                const applyTouchFishOpacity = () => {
+                    const html = document.documentElement;
+                    if (html) {
+                        html.style.setProperty('opacity', '{{value}}', 'important');
+                        html.style.setProperty('background-color', 'transparent', 'important');
+                    }
+                    if (document.body) {
+                        document.body.style.setProperty('background-color', 'transparent', 'important');
+                    }
+                };
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', applyTouchFishOpacity, { once: true });
+                } else {
+                    applyTouchFishOpacity();
+                }
+            })();
+            """;
+        var newScriptId = await Browser.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(script);
+        if (_opacityScriptId is not null)
+        {
+            Browser.CoreWebView2.RemoveScriptToExecuteOnDocumentCreated(_opacityScriptId);
+        }
+        _opacityScriptId = newScriptId;
+        await Browser.CoreWebView2.ExecuteScriptAsync(script);
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -123,18 +160,54 @@ public partial class BrowserWindow : Window
         Hide();
     }
 
-    private void DragBar_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void AddressBox_OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ClickCount == 2)
+        if (!AddressBox.IsReadOnly) return;
+        _addressPressPending = true;
+        _addressPressOrigin = e.GetPosition(this);
+        AddressBox.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void AddressBox_OnPreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_addressPressPending || e.LeftButton != MouseButtonState.Pressed || !AddressBox.IsReadOnly) return;
+        var current = e.GetPosition(this);
+        if (Math.Abs(current.X - _addressPressOrigin.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(current.Y - _addressPressOrigin.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+        _addressPressPending = false;
+        AddressBox.ReleaseMouseCapture();
+        try
         {
-            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-            return;
+            DragMove();
         }
-        if (e.LeftButton == MouseButtonState.Pressed) DragMove();
+        catch (InvalidOperationException)
+        {
+            // The mouse may have been released between the threshold check and DragMove.
+        }
+        e.Handled = true;
+    }
+
+    private void AddressBox_OnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_addressPressPending || !AddressBox.IsReadOnly) return;
+        _addressPressPending = false;
+        AddressBox.ReleaseMouseCapture();
+        AddressBox.IsReadOnly = false;
+        AddressBox.Focus();
+        AddressBox.SelectAll();
+        e.Handled = true;
     }
 
     private void AddressBox_OnKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Escape)
+        {
+            AddressBox.Text = _currentUrl;
+            Browser.Focus();
+            e.Handled = true;
+            return;
+        }
         if (e.Key != Key.Enter) return;
         Navigate(AddressBox.Text);
         Browser.Focus();
@@ -143,19 +216,27 @@ public partial class BrowserWindow : Window
 
     private void AddressBox_OnLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
-        if (!_applyingSettings) Navigate(AddressBox.Text);
+        if (!_applyingSettings && !AddressBox.IsReadOnly) Navigate(AddressBox.Text);
+        AddressBox.IsReadOnly = true;
     }
 
-    private void Navigate_OnClick(object sender, RoutedEventArgs e) => Navigate(AddressBox.Text);
     private void Reload_OnClick(object sender, RoutedEventArgs e) => Browser.CoreWebView2?.Reload();
     private void Hide_OnClick(object sender, RoutedEventArgs e) => Hide();
 
-    private void OpacitySelector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void OpacitySelector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_applyingSettings || _site is null || OpacitySelector.SelectedIndex < 0) return;
         var opacity = OpacityOptions[OpacitySelector.SelectedIndex];
         Opacity = opacity;
         _site.WindowOpacity = opacity;
+        try
+        {
+            await ApplyWebOpacityAsync(opacity);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine($"Unable to apply web opacity: {exception}");
+        }
         ConfigurationChanged?.Invoke();
     }
 

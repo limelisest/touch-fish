@@ -14,7 +14,7 @@ public partial class BrowserSiteItemViewModel : ObservableObject
         _windowOpacity = site.WindowOpacity;
         _windowTopmost = site.WindowTopmost;
         _autoHideSeconds = site.AutoHideSeconds;
-        _floatingWidgetEnabled = site.FloatingWidgetEnabled;
+        _floatingWidgetEnabled = true;
         _floatingWidgetTriggerMode = site.FloatingWidgetTriggerMode;
         WindowLeft = site.WindowLeft;
         WindowTop = site.WindowTop;
@@ -84,7 +84,7 @@ public partial class BrowserSiteItemViewModel : ObservableObject
         WindowOpacity = Math.Clamp(WindowOpacity, 0.25, 1),
         WindowTopmost = WindowTopmost,
         AutoHideSeconds = Math.Max(0, AutoHideSeconds),
-        FloatingWidgetEnabled = FloatingWidgetEnabled,
+        FloatingWidgetEnabled = true,
         FloatingWidgetTriggerMode = FloatingWidgetTriggerMode,
         WindowLeft = WindowLeft,
         WindowTop = WindowTop,

@@ -9,14 +9,12 @@ namespace TouchFish.Modules.Browser;
 
 public sealed class BrowserWindowManager : IDisposable
 {
-    private static readonly TimeSpan InputMethodGrace = TimeSpan.FromSeconds(2);
     private readonly IWindowService _windowService;
     private readonly DispatcherTimer _autoHideTimer;
     private readonly Dictionary<Guid, BrowserWindow> _windows = [];
     private readonly Dictionary<Guid, FloatingWidgetWindow> _widgets = [];
     private readonly Dictionary<Guid, DateTimeOffset?> _outsideSince = [];
     private readonly Dictionary<Guid, DateTimeOffset> _widgetGraceUntil = [];
-    private readonly Dictionary<Guid, DateTimeOffset> _lastFocusSeenAt = [];
     private readonly SemaphoreSlim _syncLock = new(1, 1);
     private readonly Lazy<Task<CoreWebView2Environment>> _environment;
     private IReadOnlyList<BrowserSiteItemViewModel> _sites = [];
@@ -95,7 +93,6 @@ public sealed class BrowserWindowManager : IDisposable
                 _windows[id].ClosePermanently();
                 _windows.Remove(id);
                 _outsideSince.Remove(id);
-                _lastFocusSeenAt.Remove(id);
             }
             foreach (var id in _widgets.Keys.Where(id => !activeIds.Contains(id)).ToArray()) CloseWidget(id);
 
@@ -135,11 +132,6 @@ public sealed class BrowserWindowManager : IDisposable
 
     private void SyncWidget(BrowserSiteItemViewModel site)
     {
-        if (!site.FloatingWidgetEnabled)
-        {
-            CloseWidget(site.Id);
-            return;
-        }
         if (!_widgets.TryGetValue(site.Id, out var widget))
         {
             widget = new FloatingWidgetWindow { EdgeSnapEnabled = true };
@@ -182,20 +174,12 @@ public sealed class BrowserWindowManager : IDisposable
         if (!_featureEnabled || _shuttingDown) return;
         var now = DateTimeOffset.Now;
         var cursorWindow = _windowService.GetWindowUnderCursorHandle();
-        var foregroundWindow = _windowService.GetForegroundWindowHandle();
         foreach (var site in _sites.Where(site => site.IsEnabled))
         {
             if (!_windows.TryGetValue(site.Id, out var window) || !window.IsVisible) continue;
             var handle = window.Handle;
             var cursorInside = _windowService.IsWindowRelated(handle, cursorWindow);
-            var focused = _windowService.IsWindowFocused(handle);
-            if (focused) _lastFocusSeenAt[site.Id] = now;
-            var inputMethodActive = !focused &&
-                                    _lastFocusSeenAt.TryGetValue(site.Id, out var lastFocus) &&
-                                    now - lastFocus <= InputMethodGrace &&
-                                    _windowService.IsInputMethodWindowForTarget(handle, foregroundWindow);
-            if (inputMethodActive) _lastFocusSeenAt[site.Id] = now;
-            if (cursorInside || focused || inputMethodActive ||
+            if (cursorInside ||
                 _widgetGraceUntil.TryGetValue(site.Id, out var grace) && now < grace)
             {
                 _outsideSince[site.Id] = null;
@@ -231,7 +215,6 @@ public sealed class BrowserWindowManager : IDisposable
     {
         _outsideSince.Clear();
         _widgetGraceUntil.Clear();
-        _lastFocusSeenAt.Clear();
     }
 
     public void Shutdown()

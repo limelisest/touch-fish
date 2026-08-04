@@ -6,7 +6,7 @@
     <SelfContained>false</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <AssemblyName>TouchFish</AssemblyName>
-    <Version>0.13.1</Version>
+    <Version>0.13.2</Version>
     <RootNamespace>TouchFish.Launcher</RootNamespace>
     <ApplicationIcon>..\TouchFish.App\Assets\app-icon.ico</ApplicationIcon>
   </PropertyGroup>
