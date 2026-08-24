@@ -10,6 +10,7 @@ public partial class BrowserSiteItemViewModel : ObservableObject
         Id = site.Id;
         _name = site.Name;
         _url = site.Url;
+        _homeUrl = string.IsNullOrWhiteSpace(site.HomeUrl) ? site.Url : site.HomeUrl;
         _isEnabled = site.IsEnabled;
         _windowOpacity = site.WindowOpacity;
         _windowTopmost = site.WindowTopmost;
@@ -27,6 +28,7 @@ public partial class BrowserSiteItemViewModel : ObservableObject
     public Guid Id { get; }
     [ObservableProperty] private string _name;
     [ObservableProperty] private string _url;
+    [ObservableProperty] private string _homeUrl;
     [ObservableProperty] private bool _isEnabled;
     [ObservableProperty] private double _windowOpacity;
     [ObservableProperty] private bool _windowTopmost;
@@ -80,6 +82,7 @@ public partial class BrowserSiteItemViewModel : ObservableObject
         Id = Id,
         Name = string.IsNullOrWhiteSpace(Name) ? "网页" : Name.Trim(),
         Url = Url.Trim(),
+        HomeUrl = string.IsNullOrWhiteSpace(HomeUrl) ? Url.Trim() : HomeUrl.Trim(),
         IsEnabled = IsEnabled,
         WindowOpacity = Math.Clamp(WindowOpacity, 0.25, 1),
         WindowTopmost = WindowTopmost,

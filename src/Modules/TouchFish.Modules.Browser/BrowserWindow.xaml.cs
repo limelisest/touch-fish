@@ -13,11 +13,20 @@ namespace TouchFish.Modules.Browser;
 public partial class BrowserWindow : Window
 {
     private const int WindowHitTestMessage = 0x0084;
+    private const int MouseXButtonDownMessage = 0x020B;
+    private const int NonClientXButtonDownMessage = 0x00AB;
+    private const int AppCommandMessage = 0x0319;
+    private const int XButton1Id = 1;
+    private const int XButton2Id = 2;
+    private const int AppCommandBrowserBackward = 1;
+    private const int AppCommandBrowserForward = 2;
+    private const int AppCommandBrowserHome = 7;
     private static readonly double[] OpacityOptions = [1, 0.75, 0.5, 0.25];
     private bool _allowClose;
     private bool _initialized;
     private bool _applyingSettings;
     private bool _addressPressPending;
+    private int _nativeNavigationTick;
     private Point _addressPressOrigin;
     private string _currentUrl = "";
     private BrowserSiteItemViewModel? _site;
@@ -78,11 +87,17 @@ public partial class BrowserWindow : Window
                 args.Handled = true;
                 Browser.CoreWebView2.Navigate(args.Uri);
             };
-            Browser.CoreWebView2.SourceChanged += (_, _) => UpdateAddressFromBrowser();
+            Browser.CoreWebView2.SourceChanged += (_, _) =>
+            {
+                UpdateAddressFromBrowser();
+                UpdateNavigationButtons();
+            };
+            Browser.CoreWebView2.HistoryChanged += (_, _) => UpdateNavigationButtons();
             _initialized = true;
         }
 
         Navigate(site.Url);
+        UpdateNavigationButtons();
     }
 
     public void ShowAndActivate()
@@ -141,6 +156,12 @@ public partial class BrowserWindow : Window
         nint lParam,
         ref bool handled)
     {
+        if (TryHandleNativeNavigation(message, wParam, lParam))
+        {
+            handled = true;
+            return 1;
+        }
+
         if (message != WindowHitTestMessage ||
             !NativeMethods.GetCursorPos(out var point) ||
             !NativeMethods.GetWindowRect(windowHandle, out var rect))
@@ -251,6 +272,95 @@ public partial class BrowserWindow : Window
 
     private void Reload_OnClick(object sender, RoutedEventArgs e) => Browser.CoreWebView2?.Reload();
     private void Hide_OnClick(object sender, RoutedEventArgs e) => Hide();
+    private void Back_OnClick(object sender, RoutedEventArgs e) => GoBack();
+    private void Forward_OnClick(object sender, RoutedEventArgs e) => GoForward();
+    private void Home_OnClick(object sender, RoutedEventArgs e) => GoHome();
+
+    private void Window_OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.XButton1)
+        {
+            ConsumeNativeNavigation(GoBack);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.ChangedButton != MouseButton.XButton2) return;
+        ConsumeNativeNavigation(GoForward);
+        e.Handled = true;
+    }
+
+    private bool TryHandleNativeNavigation(int message, nint wParam, nint lParam)
+    {
+        if (message is MouseXButtonDownMessage or NonClientXButtonDownMessage)
+        {
+            var button = (int)((wParam.ToInt64() >> 16) & 0xFFFF);
+            if (button == XButton1Id)
+            {
+                ConsumeNativeNavigation(GoBack);
+                return true;
+            }
+
+            if (button == XButton2Id)
+            {
+                ConsumeNativeNavigation(GoForward);
+                return true;
+            }
+
+            return false;
+        }
+
+        if (message != AppCommandMessage) return false;
+        var command = (int)((lParam.ToInt64() >> 16) & 0x0FFF);
+        if (command == AppCommandBrowserBackward)
+        {
+            ConsumeNativeNavigation(GoBack);
+            return true;
+        }
+
+        if (command == AppCommandBrowserForward)
+        {
+            ConsumeNativeNavigation(GoForward);
+            return true;
+        }
+
+        if (command != AppCommandBrowserHome) return false;
+        ConsumeNativeNavigation(GoHome);
+        return true;
+    }
+
+    private void ConsumeNativeNavigation(Action navigation)
+    {
+        var tick = Environment.TickCount;
+        if (unchecked(tick - _nativeNavigationTick) < 50) return;
+        _nativeNavigationTick = tick;
+        navigation();
+    }
+
+    private void GoBack()
+    {
+        if (Browser.CoreWebView2?.CanGoBack == true) Browser.CoreWebView2.GoBack();
+    }
+
+    private void GoForward()
+    {
+        if (Browser.CoreWebView2?.CanGoForward == true) Browser.CoreWebView2.GoForward();
+    }
+
+    private void GoHome()
+    {
+        var homeUrl = _site?.HomeUrl;
+        if (string.IsNullOrWhiteSpace(homeUrl)) homeUrl = _site?.Url;
+        if (string.IsNullOrWhiteSpace(homeUrl)) return;
+        Navigate(homeUrl);
+    }
+
+    private void UpdateNavigationButtons()
+    {
+        var core = Browser.CoreWebView2;
+        BackButton.IsEnabled = core?.CanGoBack == true;
+        ForwardButton.IsEnabled = core?.CanGoForward == true;
+    }
 
     private void OpacitySelector_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {

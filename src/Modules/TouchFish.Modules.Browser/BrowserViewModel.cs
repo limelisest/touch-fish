@@ -66,6 +66,7 @@ public partial class BrowserViewModel : ObservableObject, IDisposable
         {
             Name = $"网页 {index}",
             Url = "https://www.bing.com",
+            HomeUrl = "https://www.bing.com",
             IsEnabled = false
         });
         Attach(item);

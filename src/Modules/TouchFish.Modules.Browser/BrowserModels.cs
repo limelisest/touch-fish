@@ -14,6 +14,7 @@ public sealed class BrowserSite
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "新网页";
     public string Url { get; set; } = "https://www.bing.com";
+    public string HomeUrl { get; set; } = "";
     public bool IsEnabled { get; set; } = true;
     public double WindowOpacity { get; set; } = 1;
     public bool WindowTopmost { get; set; } = true;
